@@ -1,11 +1,11 @@
 TAF m2camke
 ==================
 
-A tool that provides the ability to convert TAF makefile into CMakeLists.txt:
+A tool that provides the ability to convert TAF makefile into CMakeLists.txt.
 
 <p>
     <p>
-        CMakeLists.txt file generator:
+        The convert points in CMakeLists.txt file is as followed.
         <ul>
             <li>convert mk include path.</li>
             <li>convert INCLUDE path</li>
