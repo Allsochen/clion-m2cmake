@@ -1,0 +1,34 @@
+<idea-plugin>
+    <id>com.github.allsochen.m2cmake.plugin.m2cmake</id>
+    <name>TAF m2cmake</name>
+    <version>1.0</version>
+    <vendor email="gdcex@qq.com" url="http://www.github.com/allsochen/clion-m2cmake">Allsochen</vendor>
+
+    <description><![CDATA[
+      A tool that provides the ability to convert TAF makefile into CMakeFiles.txt.<br>
+    ]]></description>
+
+    <change-notes><![CDATA[
+    ]]>
+    </change-notes>
+
+    <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
+    <idea-version since-build="143.0"/>
+
+    <depends>com.intellij.modules.lang</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationConfigurable instance="com.github.allsochen.m2cmake.configuration.Configuration"
+                                 displayName="TAF m2cmake plugin"/>
+    </extensions>
+
+    <actions>
+        <group id="m2cmake.CmakeFileGenerate" text="CmakeFileGenerate" description="CmakeFileGenerate">
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>
+            <action id="m2cmake.CmakeFileGenerateAction"
+                    class="com.github.allsochen.m2cmake.CmakeFileGenerateAction"
+                    text="Transfer TAF makefile To cmake..." keymap="Alt K,Alt G" />
+        </group>
+    </actions>
+
+</idea-plugin>
