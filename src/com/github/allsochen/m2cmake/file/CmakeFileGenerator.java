@@ -39,6 +39,10 @@ public class CmakeFileGenerator {
         Iterator<Map.Entry<String, String>> iterator = dirMappings.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<String, String> entry = iterator.next();
+            if (jceIncludePath.contains("/home/tafjce/DCache/API/dcacheclient.mk")) {
+                jceIncludePath = jceIncludePath.replace("/home/tafjce/DCache/API/dcacheclient.mk",
+                        "/home/tafjce/DCache/API/include/dcacheclient.mk");
+            }
             newPath = jceIncludePath.replace("include ", "");
             newPath = newPath.substring(0, newPath.lastIndexOf("/"));
             if (newPath.contains(entry.getKey())) {

@@ -34,11 +34,11 @@ public class Configuration implements Configurable {
         VerticalLayout verticalLayout = new VerticalLayout(1, 2);
         jPanel.setLayout(verticalLayout);
 
-        String json = JsonConfigBuilder.getInstance().create();
+        String json = Properties.get(JSON_STR);
 
         // The first time a user installs the plugin, save the default options in their properties.
-        if (Properties.get(JSON_STR) == null ||
-                Properties.get(JSON_STR).isEmpty()) {
+        if (json == null || json.isEmpty()) {
+            json = JsonConfigBuilder.getInstance().create();
             Properties.set(JSON_STR, json);
         }
 

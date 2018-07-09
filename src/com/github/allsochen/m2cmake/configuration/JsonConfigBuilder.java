@@ -30,7 +30,7 @@ public class JsonConfigBuilder {
         jsonConfig.setCmakeVersion("3.1");
         Map<String, String> mappings = new HashMap<>();
 
-        mappings.put("/home/tafjce/", "Z:/tafjce/");
+        mappings.put("/home/tafjce/", "D:/Codes/tafjce/");
         jsonConfig.setDirMappings(mappings);
 
         List<String> includes = new ArrayList<>();
