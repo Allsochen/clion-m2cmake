@@ -68,7 +68,10 @@ public class Configuration implements Configurable {
 
     @Override
     public void reset() {
-        String json = JsonConfigBuilder.getInstance().create();
+        String json = Properties.get(JSON_STR);
+        if (json == null || json.isEmpty()) {
+            json = JsonConfigBuilder.getInstance().create();
+        }
         jsonArea.setText(json);
         modified = false;
     }
