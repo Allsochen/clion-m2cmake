@@ -63,7 +63,7 @@ public class Configuration implements Configurable {
     @Override
     public void apply() throws ConfigurationException {
         Properties.set(JSON_STR, jsonArea.getText());
-        modified = false;
+        modified = true;
     }
 
     @Override
@@ -73,7 +73,7 @@ public class Configuration implements Configurable {
             json = JsonConfigBuilder.getInstance().create();
         }
         jsonArea.setText(json);
-        modified = false;
+        modified = true;
     }
 
     @Override

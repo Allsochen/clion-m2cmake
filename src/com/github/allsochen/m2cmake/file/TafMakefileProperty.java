@@ -4,8 +4,9 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class TafMakefileProperty {
-    private String app;
-    private String target;
+    private String app = "MTT";
+    private String target = "untitled";
+    private String cxxFlags = "";
     private List<String> includes = new LinkedList<>();
     private List<String> jceIncludes = new LinkedList<>();
 
@@ -23,6 +24,14 @@ public class TafMakefileProperty {
 
     public void setTarget(String target) {
         this.target = target;
+    }
+
+    public String getCxxFlags() {
+        return cxxFlags;
+    }
+
+    public void setCxxFlags(String cxxFlags) {
+        this.cxxFlags = cxxFlags;
     }
 
     public List<String> getIncludes() {

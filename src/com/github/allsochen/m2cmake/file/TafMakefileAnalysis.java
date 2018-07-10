@@ -23,6 +23,9 @@ public class TafMakefileAnalysis {
                     if (tmp.getTarget() != null && !tmp.getTarget().isEmpty()) {
                         totalTmp.setTarget(tmp.getTarget());
                     }
+                    if (tmp.getCxxFlags() != null && !tmp.getCxxFlags().isEmpty()) {
+                        totalTmp.setCxxFlags(tmp.getCxxFlags());
+                    }
                     if (tmp.getIncludes() != null && !tmp.getIncludes().isEmpty()) {
                         totalTmp.addIncludes(tmp.getIncludes());
                     }
@@ -58,6 +61,9 @@ public class TafMakefileAnalysis {
                 }
                 if (key.equals("TARGET")) {
                     tmp.setTarget(value);
+                }
+                if (key.equals("CFLAGS")) {
+                    tmp.setCxxFlags(value);
                 }
             }
 

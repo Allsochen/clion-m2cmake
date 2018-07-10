@@ -79,6 +79,13 @@ public class CmakeFileGenerator {
         bw.write("set(CMAKE_CXX_STANDARD 11)");
         bw.newLine();
 
+        bw.write("#set(CMAKE_CXX_FLAGS \"-std=c++11 -stdlib=libstdc++ -Wno-error=c++11-narrowing\")");
+        bw.newLine();
+        if (!this.tafMakefileProperty.getCxxFlags().isEmpty()) {
+            bw.write("set(CMAKE_CXX_FLAGS " + this.tafMakefileProperty.getCxxFlags() + ")");
+            bw.newLine();
+        }
+
         bw.newLine();
         bw.write("#配置include");
         bw.newLine();
