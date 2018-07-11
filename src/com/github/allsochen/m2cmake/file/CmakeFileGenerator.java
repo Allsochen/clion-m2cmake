@@ -2,8 +2,15 @@ package com.github.allsochen.m2cmake.file;
 
 import com.github.allsochen.m2cmake.configuration.JsonConfig;
 
-import java.io.*;
-import java.util.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class CmakeFileGenerator {
     private String basePath;
