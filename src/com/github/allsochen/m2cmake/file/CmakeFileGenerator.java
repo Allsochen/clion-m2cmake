@@ -79,12 +79,9 @@ public class CmakeFileGenerator {
         bw.write("set(CMAKE_CXX_STANDARD 11)");
         bw.newLine();
 
-        bw.write("#set(CMAKE_CXX_FLAGS \"-std=c++11 -stdlib=libstdc++ -Wno-error=c++11-narrowing\")");
+        String cxxFlags = "-std=c++11 -Wno-narrowing -fno-strict-aliasing -Wno-deprecated-declarations -fPIC -Wno-deprecated -Wall";
+        bw.write("set(CMAKE_CXX_FLAGS \"" + cxxFlags + "\")");
         bw.newLine();
-        if (!this.tafMakefileProperty.getCxxFlags().isEmpty()) {
-            bw.write("set(CMAKE_CXX_FLAGS " + this.tafMakefileProperty.getCxxFlags() + ")");
-            bw.newLine();
-        }
 
         bw.newLine();
         bw.write("#配置include");
@@ -129,5 +126,6 @@ public class CmakeFileGenerator {
         bw.newLine();
         bw.flush();
         bw.close();
+        cmakeFile.setLastModified(System.currentTimeMillis());
     }
 }

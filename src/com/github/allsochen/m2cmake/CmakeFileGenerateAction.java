@@ -54,7 +54,8 @@ public class CmakeFileGenerateAction extends AnAction {
             }
         }
         File cmakeFile = CmakeFileGenerator.getCmakeListFile(basePath);
-        VirtualFile vf = LocalFileSystem.getInstance().findFileByIoFile(cmakeFile);
+
+        VirtualFile vf = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(cmakeFile);
         if (vf != null) {
             OpenFileDescriptor descriptor = new OpenFileDescriptor(project, vf);
             FileEditorManager.getInstance(project).openTextEditor(descriptor, true);
