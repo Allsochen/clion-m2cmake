@@ -3,9 +3,7 @@ package com.github.allsochen.m2cmake.file;
 import com.github.allsochen.m2cmake.configuration.JsonConfig;
 
 import java.io.*;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class CmakeFileGenerator {
     private String basePath;
@@ -86,7 +84,8 @@ public class CmakeFileGenerator {
         bw.newLine();
         bw.write("#配置include");
         bw.newLine();
-        List<String> configIncludes = this.jsonConfig.getIncludes();
+
+        Set<String> configIncludes = new LinkedHashSet<>(this.jsonConfig.getIncludes());
         if (configIncludes != null) {
             for (String include : configIncludes) {
                 bw.write("include_directories(" + include + ")");
@@ -97,7 +96,8 @@ public class CmakeFileGenerator {
         bw.newLine();
         bw.write("#服务include");
         bw.newLine();
-        for (String include : this.tafMakefileProperty.getIncludes()) {
+        Set<String> includes = new LinkedHashSet<>(this.tafMakefileProperty.getIncludes());
+        for (String include : includes) {
             bw.write("include_directories(" + transferIncludePath(include) + ")");
             bw.newLine();
         }
@@ -112,7 +112,8 @@ public class CmakeFileGenerator {
 
         bw.write("#服务依赖jce");
         bw.newLine();
-        for (String include : this.tafMakefileProperty.getJceIncludes()) {
+        Set<String> jceIncludes = new LinkedHashSet<>(this.tafMakefileProperty.getJceIncludes());
+        for (String include : jceIncludes) {
             bw.write("include_directories(" + transferJceIncludePath(include) + ")");
             bw.newLine();
         }
