@@ -27,6 +27,10 @@ public class CmakeFileGenerateAction extends AnAction {
         TafMakefileAnalysis analysis = new TafMakefileAnalysis();
         TafMakefileProperty tafMakefileProperty = analysis.analysis(basePath);
 
+        if (tafMakefileProperty.getTarget().contains(".a")) {
+            tafMakefileProperty.setTarget(project.getName());
+        }
+
         String json = Properties.get(Configuration.JSON_STR);
         if (json == null || json.isEmpty()) {
             json = JsonConfigBuilder.getInstance().create();
