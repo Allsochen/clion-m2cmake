@@ -27,7 +27,7 @@
             <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>
             <action id="m2cmake.CmakeFileGenerateAction"
                     class="com.github.allsochen.m2cmake.CmakeFileGenerateAction"
-                    text="Transfer TAF makefile To cmake..." keymap="Alt K,Alt G" />
+                    text="Transfer TAF makefile To cmake..." keymap="Alt K,Alt G"/>
         </group>
     </actions>
 
