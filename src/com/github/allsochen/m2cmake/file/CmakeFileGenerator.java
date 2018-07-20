@@ -7,10 +7,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class CmakeFileGenerator {
     private String basePath;
@@ -44,10 +41,6 @@ public class CmakeFileGenerator {
         Iterator<Map.Entry<String, String>> iterator = dirMappings.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<String, String> entry = iterator.next();
-            if (jceIncludePath.contains("/home/tafjce/DCache/API/dcacheclient.mk")) {
-                jceIncludePath = jceIncludePath.replace("/home/tafjce/DCache/API/dcacheclient.mk",
-                        "/home/tafjce/DCache/API/include/dcacheclient.mk");
-            }
             newPath = jceIncludePath.replace("include ", "");
             newPath = newPath.substring(0, newPath.lastIndexOf("/"));
             if (newPath.contains(entry.getKey())) {
@@ -120,7 +113,22 @@ public class CmakeFileGenerator {
         bw.write("#服务依赖jce");
         bw.newLine();
         Set<String> jceIncludes = new LinkedHashSet<>(this.tafMakefileProperty.getJceIncludes());
-        for (String include : jceIncludes) {
+        List<String> newJceIncludes = new ArrayList<>(jceIncludes);
+
+        for (int i = 0; i < newJceIncludes.size(); i++) {
+            String include = newJceIncludes.get(i);
+            if (include.contains("/home/tafjce/DCache/API/dcacheclient.mk")) {
+                include = include.replace("/home/tafjce/DCache/API/dcacheclient.mk",
+                        "/home/tafjce/DCache/API/include/dcacheclient.mk");
+                newJceIncludes.remove(i);
+                newJceIncludes.add(include);
+                newJceIncludes.add("include /home/tafjce/DCache/ProxyServer/ProxyServer.mk");
+                newJceIncludes.add("include /home/tafjce/DCache/RouterServer/RouterServer.mk");
+                newJceIncludes.add("include /home/tafjce/DCache/CacheServer/CacheServer.mk");
+                newJceIncludes.add("include /home/tafjce/DCache/MKCacheServer/MKCacheServer.mk");
+            }
+        }
+        for (String include : newJceIncludes) {
             bw.write("include_directories(" + transferJceIncludePath(include) + ")");
             bw.newLine();
         }
