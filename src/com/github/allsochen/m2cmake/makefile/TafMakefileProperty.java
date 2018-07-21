@@ -1,14 +1,14 @@
-package com.github.allsochen.m2cmake.file;
+package com.github.allsochen.m2cmake.makefile;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
 public class TafMakefileProperty {
-    private String app = "MTT";
-    private String target = "untitled";
+    private String app = "";
+    private List<String> targets = new ArrayList<>();
     private String cxxFlags = "";
-    private List<String> includes = new LinkedList<>();
-    private List<String> jceIncludes = new LinkedList<>();
+    private List<String> includes = new ArrayList<>();
+    private List<String> jceIncludes = new ArrayList<>();
 
     public String getApp() {
         return app;
@@ -18,12 +18,12 @@ public class TafMakefileProperty {
         this.app = app;
     }
 
-    public String getTarget() {
-        return target;
+    public List<String> getTargets() {
+        return targets;
     }
 
-    public void setTarget(String target) {
-        this.target = target;
+    public void setTargets(List<String> targets) {
+        this.targets = targets;
     }
 
     public String getCxxFlags() {
@@ -50,11 +50,20 @@ public class TafMakefileProperty {
         this.jceIncludes = jceIncludes;
     }
 
+    public void addTargets(String target) {
+        this.targets.add(target);
+    }
+
+    public void addTargets(List<String> targets) {
+        this.targets.addAll(targets);
+    }
+
     public void addIncludes(List<String> includes) {
         this.includes.addAll(includes);
     }
 
-    public void addJceIncludes(List<String> jceIincludes) {
-        this.jceIncludes.addAll(jceIincludes);
+    public void addJceIncludes(List<String> jceIncludes) {
+        this.jceIncludes.addAll(jceIncludes);
     }
+
 }

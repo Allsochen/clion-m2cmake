@@ -1,4 +1,4 @@
-package com.github.allsochen.m2cmake.file;
+package com.github.allsochen.m2cmake.makefile;
 
 import com.github.allsochen.m2cmake.configuration.JsonConfig;
 
@@ -10,45 +10,70 @@ import java.io.OutputStreamWriter;
 import java.util.*;
 
 public class CmakeFileGenerator {
+    private String app;
+    private String target;
     private String basePath;
     private TafMakefileProperty tafMakefileProperty;
     private JsonConfig jsonConfig;
 
-    public CmakeFileGenerator(String basePath, TafMakefileProperty tafMakefileProperty, JsonConfig jsonConfig) {
+    public CmakeFileGenerator(String app, String target, String basePath, TafMakefileProperty tafMakefileProperty,
+                              JsonConfig jsonConfig) {
+        this.app = app;
+        this.target = target;
         this.basePath = basePath;
         this.tafMakefileProperty = tafMakefileProperty;
         this.jsonConfig = jsonConfig;
     }
 
+    /**
+     * Filter the ../.. path and transfer to the real path.
+     *
+     * @param includePath
+     * @return
+     */
     private String transferIncludePath(String includePath) {
-        String newPath = "";
-        Map<String, String> dirMappings = jsonConfig.getDirMappings();
-        Iterator<Map.Entry<String, String>> iterator = dirMappings.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, String> entry = iterator.next();
-            newPath = includePath;
-            if (newPath.contains(entry.getKey())) {
-                newPath = newPath.replace(entry.getKey(), entry.getValue());
-                break;
-            }
+        if (!includePath.matches(".*[a-zA-z].*")) {
+            return "";
         }
+        return transferMapping(includePath);
+    }
+
+    /**
+     * Remove the `include` and `/xxx.mk` fragment.
+     * include /home/tafjce/MTT/AServer/AServer.mk => /home/tafjce/MTT/AServer
+     *
+     * @param jceIncludePath
+     * @return
+     */
+    private String transferJceIncludePath(String jceIncludePath) {
+        String newPath = convertToRealFilePath(jceIncludePath);
+        newPath = newPath.substring(0, newPath.lastIndexOf("/"));
         return newPath;
     }
 
-    private String transferJceIncludePath(String jceIncludePath) {
-        String newPath = "";
+    /**
+     * Remove the `include` prefix.
+     * include /home/tafjce/MTT/AServer/Aserver.mk => /home/tafjce/MTT/AServer/AServer.mk
+     *
+     * @param includePath
+     * @return
+     */
+    private String convertToRealFilePath(String includePath) {
+        String newPath = transferMapping(includePath);
+        newPath = newPath.replace("include ", "").trim();
+        return newPath;
+    }
+
+    private String transferMapping(String path) {
         Map<String, String> dirMappings = jsonConfig.getDirMappings();
         Iterator<Map.Entry<String, String>> iterator = dirMappings.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<String, String> entry = iterator.next();
-            newPath = jceIncludePath.replace("include ", "");
-            newPath = newPath.substring(0, newPath.lastIndexOf("/"));
-            if (newPath.contains(entry.getKey())) {
-                newPath = newPath.replace(entry.getKey(), entry.getValue());
-                break;
+            if (path.contains(entry.getKey())) {
+                return path.replace(entry.getKey(), entry.getValue());
             }
         }
-        return newPath;
+        return path;
     }
 
     public static File getCmakeListFile(String basePath) {
@@ -56,8 +81,6 @@ public class CmakeFileGenerator {
     }
 
     public void create() throws IOException {
-        String app = this.tafMakefileProperty.getApp();
-        String target = this.tafMakefileProperty.getTarget();
         File cmakeFile = getCmakeListFile(this.basePath);
         BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(
                 new FileOutputStream(cmakeFile), "UTF-8"));
@@ -98,8 +121,11 @@ public class CmakeFileGenerator {
         bw.newLine();
         Set<String> includes = new LinkedHashSet<>(this.tafMakefileProperty.getIncludes());
         for (String include : includes) {
-            bw.write("include_directories(" + transferIncludePath(include) + ")");
-            bw.newLine();
+            include = transferIncludePath(include);
+            if (include != null && !include.isEmpty()) {
+                bw.write("include_directories(" + transferIncludePath(include) + ")");
+                bw.newLine();
+            }
         }
         bw.newLine();
 
@@ -112,25 +138,40 @@ public class CmakeFileGenerator {
 
         bw.write("#服务依赖jce");
         bw.newLine();
-        Set<String> jceIncludes = new LinkedHashSet<>(this.tafMakefileProperty.getJceIncludes());
-        List<String> newJceIncludes = new ArrayList<>(jceIncludes);
 
-        for (int i = 0; i < newJceIncludes.size(); i++) {
-            String include = newJceIncludes.get(i);
-            if (include.contains("/home/tafjce/DCache/API/dcacheclient.mk")) {
-                include = include.replace("/home/tafjce/DCache/API/dcacheclient.mk",
-                        "/home/tafjce/DCache/API/include/dcacheclient.mk");
-                newJceIncludes.remove(i);
-                newJceIncludes.add(include);
-                newJceIncludes.add("include /home/tafjce/DCache/ProxyServer/ProxyServer.mk");
-                newJceIncludes.add("include /home/tafjce/DCache/RouterServer/RouterServer.mk");
-                newJceIncludes.add("include /home/tafjce/DCache/CacheServer/CacheServer.mk");
-                newJceIncludes.add("include /home/tafjce/DCache/MKCacheServer/MKCacheServer.mk");
+        Set<String> allJceRealIncludes = new LinkedHashSet<>();
+        List<String> jceIncludes = this.tafMakefileProperty.getJceIncludes();
+
+        for (String jceInclude : jceIncludes) {
+            // Try to analysis from the real mk file.
+            // Only analysis the first floor to void death circle.
+            File file = new File(convertToRealFilePath(jceInclude));
+            if (file.exists()) {
+                TafMakefileProperty tafMakefileProperty = TafMakefileAnalysis.extractInclude(file);
+                tafMakefileProperty.getIncludes().forEach(referenceInclude -> {
+                    referenceInclude = transferIncludePath(referenceInclude);
+                    if (referenceInclude != null && !referenceInclude.isEmpty()) {
+                        allJceRealIncludes.add(referenceInclude);
+                    }
+                });
+                tafMakefileProperty.getJceIncludes().forEach(referenceJceInclude -> {
+                    referenceJceInclude = transferJceIncludePath(referenceJceInclude);
+                    if (referenceJceInclude != null && !referenceJceInclude.isEmpty()) {
+                        allJceRealIncludes.add(referenceJceInclude);
+                    }
+                });
+            } else {
+                allJceRealIncludes.add(transferJceIncludePath(jceInclude));
             }
         }
-        for (String include : newJceIncludes) {
-            bw.write("include_directories(" + transferJceIncludePath(include) + ")");
-            bw.newLine();
+
+        List<String> sortedRealIncludes = new ArrayList<>(allJceRealIncludes);
+        Collections.sort(sortedRealIncludes);
+        for (String include : sortedRealIncludes) {
+            if (include != null && !include.isEmpty()) {
+                bw.write("include_directories(" + include + ")");
+                bw.newLine();
+            }
         }
         bw.newLine();
 

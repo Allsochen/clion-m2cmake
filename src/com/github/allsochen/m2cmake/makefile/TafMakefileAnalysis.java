@@ -1,11 +1,10 @@
-package com.github.allsochen.m2cmake.file;
+package com.github.allsochen.m2cmake.makefile;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 public class TafMakefileAnalysis {
@@ -18,20 +17,20 @@ public class TafMakefileAnalysis {
         walk(folder, makefiles);
         for (File file : makefiles) {
             try {
-                TafMakefileProperty tmp = extractIncludeDirectory(file);
-                if (tmp.getApp() != null && !tmp.getApp().isEmpty()) {
+                TafMakefileProperty tmp = extractInclude(file);
+                if (!tmp.getApp().isEmpty()) {
                     totalTmp.setApp(tmp.getApp());
                 }
-                if (tmp.getTarget() != null && !tmp.getTarget().isEmpty()) {
-                    totalTmp.setTarget(tmp.getTarget());
+                if (!tmp.getTargets().isEmpty()) {
+                    totalTmp.addTargets(tmp.getTargets());
                 }
-                if (tmp.getCxxFlags() != null && !tmp.getCxxFlags().isEmpty()) {
+                if (!tmp.getCxxFlags().isEmpty()) {
                     totalTmp.setCxxFlags(tmp.getCxxFlags());
                 }
-                if (tmp.getIncludes() != null && !tmp.getIncludes().isEmpty()) {
+                if (!tmp.getIncludes().isEmpty()) {
                     totalTmp.addIncludes(tmp.getIncludes());
                 }
-                if (tmp.getJceIncludes() != null && !tmp.getJceIncludes().isEmpty()) {
+                if (!tmp.getJceIncludes().isEmpty()) {
                     totalTmp.addJceIncludes(tmp.getJceIncludes());
                 }
             } catch (Exception e) {
@@ -59,10 +58,10 @@ public class TafMakefileAnalysis {
         return file.getName().toLowerCase().contains("makefile");
     }
 
-    private TafMakefileProperty extractIncludeDirectory(File file) throws IOException {
+    public static TafMakefileProperty extractInclude(File file) throws IOException {
         TafMakefileProperty tmp = new TafMakefileProperty();
-        List<String> includes = new LinkedList<>();
-        List<String> jceIncludes = new LinkedList<>();
+        List<String> includes = new ArrayList<>();
+        List<String> jceIncludes = new ArrayList<>();
         BufferedReader bufferedReader = new BufferedReader(new FileReader(file));
         String line;
         while ((line = bufferedReader.readLine()) != null) {
@@ -75,7 +74,7 @@ public class TafMakefileAnalysis {
                     tmp.setApp(value);
                 }
                 if (key.equals("TARGET")) {
-                    tmp.setTarget(value);
+                    tmp.addTargets(value);
                 }
                 if (key.equals("CFLAGS")) {
                     tmp.setCxxFlags(value);
@@ -92,9 +91,6 @@ public class TafMakefileAnalysis {
                     for (String includeFragment : includeFragments) {
                         if (includeFragment.startsWith("-I")) {
                             String include = includeFragment.replace("-I", "");
-                            if (!include.matches(".*[a-zA-z].*")) {
-                                continue;
-                            }
                             includes.add(include);
                         }
                     }
@@ -108,6 +104,13 @@ public class TafMakefileAnalysis {
         tmp.setIncludes(includes);
         tmp.setJceIncludes(jceIncludes);
         return tmp;
+    }
+
+    public static void main(String[] args) throws Exception {
+        TafMakefileAnalysis tafMakefileAnalysis = new TafMakefileAnalysis();
+        List<File> files = new ArrayList<>();
+        tafMakefileAnalysis.walk(new File("D:/Codes/C++/news"), files);
+        System.out.println(files);
     }
 
 }

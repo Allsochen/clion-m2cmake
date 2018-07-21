@@ -4,9 +4,9 @@ import com.github.allsochen.m2cmake.configuration.Configuration;
 import com.github.allsochen.m2cmake.configuration.JsonConfig;
 import com.github.allsochen.m2cmake.configuration.JsonConfigBuilder;
 import com.github.allsochen.m2cmake.configuration.Properties;
-import com.github.allsochen.m2cmake.file.CmakeFileGenerator;
-import com.github.allsochen.m2cmake.file.TafMakefileAnalysis;
-import com.github.allsochen.m2cmake.file.TafMakefileProperty;
+import com.github.allsochen.m2cmake.makefile.CmakeFileGenerator;
+import com.github.allsochen.m2cmake.makefile.TafMakefileAnalysis;
+import com.github.allsochen.m2cmake.makefile.TafMakefileProperty;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.fileEditor.FileEditorManager;
@@ -17,6 +17,8 @@ import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 public class CmakeFileGenerateAction extends AnAction {
 
@@ -27,9 +29,8 @@ public class CmakeFileGenerateAction extends AnAction {
         TafMakefileAnalysis analysis = new TafMakefileAnalysis();
         TafMakefileProperty tafMakefileProperty = analysis.analysis(basePath);
 
-        if (tafMakefileProperty.getTarget().contains(".a")) {
-            tafMakefileProperty.setTarget(project.getName());
-        }
+        String app = chooseApp(tafMakefileProperty.getApp());
+        String target = chooseTarget(project.getName(), tafMakefileProperty.getTargets());
 
         String json = Properties.get(Configuration.JSON_STR);
         if (json == null || json.isEmpty()) {
@@ -45,7 +46,8 @@ public class CmakeFileGenerateAction extends AnAction {
             return;
         }
 
-        CmakeFileGenerator cmakeFileGenerator = new CmakeFileGenerator(basePath, tafMakefileProperty, jsonConfig);
+        CmakeFileGenerator cmakeFileGenerator =
+                new CmakeFileGenerator(app, target, basePath, tafMakefileProperty, jsonConfig);
         try {
             cmakeFileGenerator.create();
         } catch (Exception e) {
@@ -64,5 +66,37 @@ public class CmakeFileGenerateAction extends AnAction {
             OpenFileDescriptor descriptor = new OpenFileDescriptor(project, vf);
             FileEditorManager.getInstance(project).openTextEditor(descriptor, true);
         }
+    }
+
+    String chooseApp(String app) {
+        if (app == null || app.isEmpty()) {
+            return "MTT";
+        }
+        return app;
+    }
+
+    String chooseTarget(String projectName, List<String> targets) {
+        if (targets == null || targets.isEmpty()) {
+            if (projectName == null || projectName.isEmpty()) {
+                return "UnknownServer";
+            }
+            return projectName;
+        }
+        List<String> servers = new ArrayList<>();
+        for (String target : targets) {
+            if (target.equals(projectName)) {
+                return target;
+            }
+            if (target.contains("Server")) {
+                servers.add(target);
+            }
+            if (target.contains(".a")) {
+                return projectName;
+            }
+        }
+        if (servers.size() == 1) {
+            return servers.get(0);
+        }
+        return projectName;
     }
 }
