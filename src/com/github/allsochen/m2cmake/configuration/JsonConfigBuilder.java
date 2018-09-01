@@ -37,6 +37,7 @@ public class JsonConfigBuilder {
         includes.add("D:/Codes/C++/taf/include");
         includes.add("D:/Codes/C++/taf/src");
         jsonConfig.setIncludes(includes);
+        jsonConfig.setAutomaticReloadCMake(true);
         return gson.toJson(jsonConfig);
     }
 

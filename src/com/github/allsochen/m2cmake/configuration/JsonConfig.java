@@ -5,9 +5,11 @@ import java.util.Map;
 
 public class JsonConfig {
 
-    private String cmakeVersion;
+    // cmake_minimum_required(VERSION 3.1)
+    private String cmakeVersion = "3.1";
     private List<String> includes;
     private Map<String, String> dirMappings;
+    private boolean automaticReloadCMake = true;
 
     public String getCmakeVersion() {
         return cmakeVersion;
@@ -31,5 +33,13 @@ public class JsonConfig {
 
     public void setDirMappings(Map<String, String> dirMappings) {
         this.dirMappings = dirMappings;
+    }
+
+    public boolean isAutomaticReloadCMake() {
+        return automaticReloadCMake;
+    }
+
+    public void setAutomaticReloadCMake(boolean automaticReloadCMake) {
+        this.automaticReloadCMake = automaticReloadCMake;
     }
 }

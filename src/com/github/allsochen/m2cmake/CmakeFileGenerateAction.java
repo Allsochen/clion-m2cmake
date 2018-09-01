@@ -1,5 +1,6 @@
 package com.github.allsochen.m2cmake;
 
+import com.github.allsochen.m2cmake.build.AutomaticReloadCMakeBuilder;
 import com.github.allsochen.m2cmake.configuration.Configuration;
 import com.github.allsochen.m2cmake.configuration.JsonConfig;
 import com.github.allsochen.m2cmake.configuration.JsonConfigBuilder;
@@ -65,6 +66,16 @@ public class CmakeFileGenerateAction extends AnAction {
         if (vf != null) {
             OpenFileDescriptor descriptor = new OpenFileDescriptor(project, vf);
             FileEditorManager.getInstance(project).openTextEditor(descriptor, true);
+        }
+
+        // Set project to auto build.
+        if (jsonConfig.isAutomaticReloadCMake()) {
+            try {
+                AutomaticReloadCMakeBuilder.build(basePath);
+                LocalFileSystem.getInstance().refresh(true);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
