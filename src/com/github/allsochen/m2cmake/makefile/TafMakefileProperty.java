@@ -11,7 +11,6 @@ public class TafMakefileProperty {
     private String cxxFlags = "";
     private List<String> includes = new ArrayList<>();
     private List<String> jceIncludes = new ArrayList<>();
-    private List<String> dependenceIncludes = new ArrayList<>();
 
     public String getApp() {
         return app;
@@ -77,8 +76,8 @@ public class TafMakefileProperty {
      * @param tafjceRemoteDirs
      * @return
      */
-    private static List<String> toTafjceRemoteMappingIncludeFilePath(String includePath,
-                                                                     List<String> tafjceRemoteDirs) {
+    private static List<String> toTafjceRemoteOrLocalMappingIncludeFilePath(String includePath,
+                                                                            List<String> tafjceRemoteDirs) {
         List<String> tafjceMappingRemoteFilePath = new ArrayList<>();
         // tafjceSourceDir => Z:/tafjce
         for (String tafjceRemoteDir : tafjceRemoteDirs) {
@@ -141,21 +140,19 @@ public class TafMakefileProperty {
         return newPath;
     }
 
-    public List<String> getJceDependenceRecurseIncludes(List<String> tafjceRemoteDirs, boolean recurse) {
+    public List<String> getJceDependenceRecurseIncludes(List<String> tafjceRemoteOrLocalDirs, boolean recurse) {
         // Cached the dependence includes.
-        if (!dependenceIncludes.isEmpty() && recurse) {
-            return dependenceIncludes;
-        }
         Set<String> uniqDependenceIncludes = new LinkedHashSet<>();
+        Set<String> uniqFilePaths = new HashSet<>();
         for (String jceInclude : jceIncludes) {
             if (recurse) {
                 // Try to analysis from the mk file.
                 // Only analysis the first floor to void death circle.
-                List<String> filePaths = toTafjceRemoteMappingIncludeFilePath(toRealFilePath(jceInclude),
-                        tafjceRemoteDirs);
+                List<String> filePaths = toTafjceRemoteOrLocalMappingIncludeFilePath(toRealFilePath(jceInclude),
+                        tafjceRemoteOrLocalDirs);
                 for (String filePath : filePaths) {
                     File file = new File(filePath);
-                    if (file.exists()) {
+                    if (file.exists() && !uniqFilePaths.contains(file.getPath())) {
                         try {
                             // it's dependence.
                             TafMakefileProperty tafMakefileProperty = TafMakefileAnalysis.extractInclude(file);
@@ -175,16 +172,16 @@ public class TafMakefileProperty {
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
+                        uniqFilePaths.add(file.getPath());
                         // Only read dependence file once.
                         break;
                     }
                 }
             }
-            uniqDependenceIncludes.add(jceInclude);
+            uniqDependenceIncludes.add(toIncludePath(jceInclude));
         }
         List<String> includes = new ArrayList<>(uniqDependenceIncludes);
         Collections.sort(includes);
-        this.dependenceIncludes = includes;
         return includes;
     }
 }

@@ -7,11 +7,7 @@ import com.github.allsochen.m2cmake.makefile.TafMakefileAnalysis;
 import com.github.allsochen.m2cmake.makefile.TafMakefileProperty;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.ProgressManager;
-import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
-import org.jetbrains.annotations.NotNull;
 
 public class CmakeFileGenerateAction extends AnAction {
 
@@ -34,20 +30,8 @@ public class CmakeFileGenerateAction extends AnAction {
         FileSynchronizeWorker fsw = new FileSynchronizeWorker(jsonConfig, tafMakefileProperty, app, target);
         CmakeFileGenerator cmakeFileGenerator = new CmakeFileGenerator(app, target,
                 basePath, tafMakefileProperty, jsonConfig);
-        cmakeFileGenerator.create(false);
+        cmakeFileGenerator.create();
         cmakeFileGenerator.open(project);
-
-        ProgressManager.getInstance().run(new Task.Backgroundable(project,
-                "Sync dependence and generate CMakeList.txt") {
-
-            @Override
-            public void run(@NotNull ProgressIndicator progressIndicator) {
-                progressIndicator.setFraction(0);
-                fsw.perform(progressIndicator);
-                cmakeFileGenerator.create(true);
-                cmakeFileGenerator.reload();
-                progressIndicator.setFraction(1.0);
-            }
-        });
+        cmakeFileGenerator.reload();
     }
 }

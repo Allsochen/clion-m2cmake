@@ -26,15 +26,15 @@
     <actions>
         <group id="m2cmake.CmakeFileGenerate" text="CmakeFileGenerate" description="CmakeFileGenerate">
             <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>
-            <action id="m2cmake.CmakeFileGenerateAction"
-                    class="com.github.allsochen.m2cmake.CmakeFileGenerateAction"
-                    text="Sync Dependence And Generate CMakeList.txt..." keymap="Alt K,Alt G">
-                <keyboard-shortcut first-keystroke="alt K" second-keystroke="alt G" keymap="$default"/>
-            </action>
             <action id="m2cmake.DependenceSynchronizeAction"
                     class="com.github.allsochen.m2cmake.TafDependenceSynchronizeAction"
-                    text="Taf Dependence Recurse Synchronize...">
+                    text="TAF Dependence Recurse Synchronize...">
                 <keyboard-shortcut first-keystroke="alt K" second-keystroke="alt D" keymap="$default"/>
+            </action>
+            <action id="m2cmake.CmakeFileGenerateAction"
+                    class="com.github.allsochen.m2cmake.CmakeFileGenerateAction"
+                    text="Transfer TAF makefile to CMakeList.txt..." keymap="Alt K,Alt G">
+                <keyboard-shortcut first-keystroke="alt K" second-keystroke="alt G" keymap="$default"/>
             </action>
         </group>
     </actions>

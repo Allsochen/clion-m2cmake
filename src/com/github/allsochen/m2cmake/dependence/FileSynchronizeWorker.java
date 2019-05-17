@@ -1,6 +1,5 @@
 package com.github.allsochen.m2cmake.dependence;
 
-import com.github.allsochen.m2cmake.BaseAction;
 import com.github.allsochen.m2cmake.configuration.JsonConfig;
 import com.github.allsochen.m2cmake.makefile.TafMakefileProperty;
 import com.github.allsochen.m2cmake.utils.CollectionUtil;
@@ -12,6 +11,10 @@ import com.intellij.openapi.progress.ProgressIndicator;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class FileSynchronizeWorker {
 
@@ -20,12 +23,15 @@ public class FileSynchronizeWorker {
     private String app;
     private String target;
 
+    private ExecutorService es;
+
     public FileSynchronizeWorker(JsonConfig jsonConfig, TafMakefileProperty tafMakefileProperty,
                                  String app, String target) {
         this.jsonConfig = jsonConfig;
         this.tafMakefileProperty = tafMakefileProperty;
         this.app = app;
         this.target = target;
+        es = Executors.newFixedThreadPool(8);
     }
 
     /**
@@ -111,16 +117,17 @@ public class FileSynchronizeWorker {
                 }
             }
         } else {
-            ApplicationManager.getApplication().executeOnPooledThread(new Runnable() {
-                @Override
-                public void run() {
+//            ApplicationManager.getApplication().executeOnPooledThread(new Runnable() {
+//
+//                @Override
+//                public void run() {
                     try {
                         FileUtils.copyFileIfModified(source, destination);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                }
-            });
+//                }
+//            });
         }
     }
 
@@ -131,14 +138,22 @@ public class FileSynchronizeWorker {
         if (tafMakefileProperty == null) {
             return false;
         }
+        if (progressIndicator != null) {
+            progressIndicator.setText2("compute the dependence...");
+        }
         List<String> jceIncludeFilePaths = tafMakefileProperty.getJceDependenceRecurseIncludes(
-                this.jsonConfig.getTafjceRemoteDirs(), true);
+                jsonConfig.getTafjceRemoteDirs(), false);
         // Add itself
         jceIncludeFilePaths.add(Constants.HOME_TAFJCE + "/" + app + "/" + target);
         jceIncludeFilePaths = CollectionUtil.uniq(jceIncludeFilePaths);
         Collections.sort(jceIncludeFilePaths);
 
+        if (progressIndicator != null) {
+            progressIndicator.setText2("start sync dependence...");
+        }
+
         Set<String> copiedDirs = new HashSet<>();
+        List<Future<Boolean>> futures = new ArrayList<>();
         for (int i = 0; i < jceIncludeFilePaths.size(); i++) {
             String includeFilePath = jceIncludeFilePaths.get(i);
             // /home/tafjce/MTT/AServer
@@ -153,6 +168,8 @@ public class FileSynchronizeWorker {
                 destDir.mkdirs();
             }
             for (String tafjceRemoteMappingIncludeDir : tafjceRemoteMappingIncludeDirs) {
+                int index = i + 1;
+                int length = jceIncludeFilePaths.size();
                 if (!isCopyPah(tafjceRemoteMappingIncludeDir)) {
                     continue;
                 }
@@ -165,11 +182,28 @@ public class FileSynchronizeWorker {
                 }
                 if (!copiedDirs.contains(tafjceLocalMappingIncludeDir) ||
                         (destDir.list() == null || destDir.list().length <= 0)) {
-                    copyFolder(sourceDir, destDir, progressIndicator, i + 1, jceIncludeFilePaths.size());
+                    Future<Boolean> future = es.submit(new Callable<Boolean>() {
+                        @Override
+                        public Boolean call() {
+                            copyFolder(sourceDir, destDir, progressIndicator, index, length);
+                            return true;
+                        }
+                    });
                     copiedDirs.add(tafjceLocalMappingIncludeDir);
+                    futures.add(future);
                 }
             }
         }
-        return true;
+        while (true) {
+            try {
+                futures.removeIf(future -> future.isDone());
+                Thread.sleep(3000);
+                if (futures.isEmpty()) {
+                    return true;
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

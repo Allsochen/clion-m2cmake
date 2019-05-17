@@ -12,10 +12,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class CmakeFileGenerator {
     private String app;
@@ -50,7 +47,7 @@ public class CmakeFileGenerator {
         return new File(basePath + File.separator + "CMakeLists.txt");
     }
 
-    public void create(boolean recurse) {
+    public void create() {
         try {
             File cmakeFile = getCmakeListFile(this.basePath);
             BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(
@@ -103,8 +100,10 @@ public class CmakeFileGenerator {
             bw.write("#服务依赖jce");
             bw.newLine();
 
+            List<String> localDir = new ArrayList<>();
+            localDir.add(jsonConfig.getTafjceLocalDir());
             List<String> jceIncludeFilePaths = this.tafMakefileProperty.getJceDependenceRecurseIncludes(
-                    this.jsonConfig.getTafjceRemoteDirs(), recurse);
+                    localDir, true);
             // Add itself
             jceIncludeFilePaths.add(Constants.HOME_TAFJCE + "/" + app + "/" + target);
             jceIncludeFilePaths = CollectionUtil.uniq(jceIncludeFilePaths);
@@ -158,8 +157,8 @@ public class CmakeFileGenerator {
             // Set project to auto build.
             if (jsonConfig.isAutomaticReloadCMake()) {
                 try {
-                    AutomaticReloadCMakeBuilder.build(basePath);
                     LocalFileSystem.getInstance().refresh(true);
+                    AutomaticReloadCMakeBuilder.build(basePath);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
