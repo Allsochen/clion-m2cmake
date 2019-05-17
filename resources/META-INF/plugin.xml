@@ -9,8 +9,9 @@
     ]]></description>
 
     <change-notes><![CDATA[
-    ]]>
-    </change-notes>
+        1.implements taf makefile generate to cmake.
+        2.add taf dependence synchronized.
+    ]]></change-notes>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
     <idea-version since-build="143.0"/>
@@ -27,7 +28,14 @@
             <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>
             <action id="m2cmake.CmakeFileGenerateAction"
                     class="com.github.allsochen.m2cmake.CmakeFileGenerateAction"
-                    text="Transfer TAF makefile To cmake..." keymap="Alt K,Alt G"/>
+                    text="Sync Dependence And Generate CMakeList.txt..." keymap="Alt K,Alt G">
+                <keyboard-shortcut first-keystroke="alt K" second-keystroke="alt G" keymap="$default"/>
+            </action>
+            <action id="m2cmake.DependenceSynchronizeAction"
+                    class="com.github.allsochen.m2cmake.TafDependenceSynchronizeAction"
+                    text="Taf Dependence Recurse Synchronize...">
+                <keyboard-shortcut first-keystroke="alt K" second-keystroke="alt D" keymap="$default"/>
+            </action>
         </group>
     </actions>
 

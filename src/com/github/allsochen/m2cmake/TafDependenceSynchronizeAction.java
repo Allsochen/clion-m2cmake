@@ -13,7 +13,7 @@ import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
-public class CmakeFileGenerateAction extends AnAction {
+public class TafDependenceSynchronizeAction extends AnAction {
 
     @Override
     public void actionPerformed(AnActionEvent event) {
@@ -32,20 +32,14 @@ public class CmakeFileGenerateAction extends AnAction {
 
         // Synchronized source dependence to destination.
         FileSynchronizeWorker fsw = new FileSynchronizeWorker(jsonConfig, tafMakefileProperty, app, target);
-        CmakeFileGenerator cmakeFileGenerator = new CmakeFileGenerator(app, target,
-                basePath, tafMakefileProperty, jsonConfig);
-        cmakeFileGenerator.create(false);
-        cmakeFileGenerator.open(project);
 
         ProgressManager.getInstance().run(new Task.Backgroundable(project,
-                "Sync dependence and generate CMakeList.txt") {
+                "TAF dependence recurse synchronize") {
 
             @Override
             public void run(@NotNull ProgressIndicator progressIndicator) {
                 progressIndicator.setFraction(0);
                 fsw.perform(progressIndicator);
-                cmakeFileGenerator.create(true);
-                cmakeFileGenerator.reload();
                 progressIndicator.setFraction(1.0);
             }
         });

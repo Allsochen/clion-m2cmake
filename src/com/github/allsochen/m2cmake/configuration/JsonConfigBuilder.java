@@ -1,5 +1,6 @@
 package com.github.allsochen.m2cmake.configuration;
 
+import com.github.allsochen.m2cmake.utils.Constants;
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -30,7 +31,7 @@ public class JsonConfigBuilder {
         jsonConfig.setCmakeVersion("3.1");
         Map<String, String> mappings = new HashMap<>();
 
-        mappings.put("/home/tafjce/", "D:/Codes/tafjce/");
+        mappings.put(Constants.HOME_TAFJCE + "/", "D:/Codes/tafjce/");
         jsonConfig.setDirMappings(mappings);
 
         List<String> includes = new ArrayList<>();
@@ -38,6 +39,13 @@ public class JsonConfigBuilder {
         includes.add("D:/Codes/C++/taf/src");
         jsonConfig.setIncludes(includes);
         jsonConfig.setAutomaticReloadCMake(true);
+
+        List<String> tafjceSourceDirs = new ArrayList<>();
+        tafjceSourceDirs.add("Z:/tafjce");
+        tafjceSourceDirs.add("Y:/tafjce");
+        jsonConfig.setTafjceRemoteDirs(tafjceSourceDirs);
+
+        jsonConfig.setTafjceLocalDir("D:/Codes/tafjce");
         return gson.toJson(jsonConfig);
     }
 
