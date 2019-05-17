@@ -34,7 +34,7 @@ public class TafDependenceSynchronizeAction extends AnAction {
         FileSynchronizeWorker fsw = new FileSynchronizeWorker(jsonConfig, tafMakefileProperty, app, target);
 
         ProgressManager.getInstance().run(new Task.Backgroundable(project,
-                "TAF dependence recurse synchronize") {
+                "TAF dependence recurse synchronize...") {
 
             @Override
             public void run(@NotNull ProgressIndicator progressIndicator) {

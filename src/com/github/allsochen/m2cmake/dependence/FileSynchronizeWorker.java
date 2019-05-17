@@ -113,6 +113,7 @@ public class FileSynchronizeWorker {
                 message.append(operator).append(" ");
                 message.append(srcFile.getPath()).append(" to ").append(destination.getPath());
                 if (progressIndicator != null && progressIndicator.isRunning()) {
+                    progressIndicator.setText("TAF dependence recurse synchronize...(" + index + "/" + length + ")");
                     progressIndicator.setText2(message.toString());
                 }
             }
