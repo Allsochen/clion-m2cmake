@@ -1,10 +1,10 @@
 package com.github.allsochen.m2cmake;
 
 import com.github.allsochen.m2cmake.configuration.JsonConfig;
-import com.github.allsochen.m2cmake.dependence.FileSynchronizeWorker;
 import com.github.allsochen.m2cmake.makefile.CmakeFileGenerator;
 import com.github.allsochen.m2cmake.makefile.TafMakefileAnalysis;
 import com.github.allsochen.m2cmake.makefile.TafMakefileProperty;
+import com.github.allsochen.m2cmake.utils.ProjectUtil;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
@@ -18,10 +18,10 @@ public class CmakeFileGenerateAction extends AnAction {
         TafMakefileAnalysis analysis = new TafMakefileAnalysis();
         TafMakefileProperty tafMakefileProperty = analysis.analysis(basePath);
 
-        String app = BaseAction.chooseApp(tafMakefileProperty.getApp());
-        String target = BaseAction.chooseTarget(project.getName(), tafMakefileProperty.getTargets());
+        String app = ProjectUtil.chooseApp(tafMakefileProperty.getApp());
+        String target = ProjectUtil.chooseTarget(project.getName(), tafMakefileProperty.getTargets());
 
-        JsonConfig jsonConfig = BaseAction.getJsonConfig(project);
+        JsonConfig jsonConfig = ProjectUtil.getJsonConfig(project);
         if (jsonConfig == null) {
             return;
         }
