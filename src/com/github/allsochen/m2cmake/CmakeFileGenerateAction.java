@@ -27,7 +27,7 @@ public class CmakeFileGenerateAction extends AnAction {
         }
 
         // Synchronized source dependence to destination.
-        FileSynchronizeWorker fsw = new FileSynchronizeWorker(jsonConfig, tafMakefileProperty, app, target);
+//        FileSynchronizeWorker fsw = new FileSynchronizeWorker(jsonConfig, tafMakefileProperty, app, target);
         CmakeFileGenerator cmakeFileGenerator = new CmakeFileGenerator(app, target,
                 basePath, tafMakefileProperty, jsonConfig);
         cmakeFileGenerator.create();
