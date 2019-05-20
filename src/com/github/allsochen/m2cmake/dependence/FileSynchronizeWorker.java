@@ -13,6 +13,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class FileSynchronizeWorker {
 
@@ -23,6 +24,7 @@ public class FileSynchronizeWorker {
 
     private ExecutorService executor;
     private List<CompletableFuture<Boolean>> futures = new ArrayList<>();
+    private AtomicInteger lastIndex = new AtomicInteger(0);
 
     public FileSynchronizeWorker(JsonConfig jsonConfig, TafMakefileProperty tafMakefileProperty,
                                  String app, String target) {
@@ -94,7 +96,10 @@ public class FileSynchronizeWorker {
             return;
         }
         // Ignore file name starts with `.` like `.git/.svn`
-        if (source.isDirectory() && !source.getName().startsWith(".")) {
+        if (source.getName().startsWith(".")) {
+            return;
+        }
+        if (source.isDirectory()) {
             if (!destination.exists()) {
                 destination.mkdirs();
             }
@@ -108,11 +113,14 @@ public class FileSynchronizeWorker {
                     operator = "sync";
                     copyFolder(srcFile, destFile, progressIndicator, index, length);
                 }
-                message.append(index).append("/").append(length).append(": ");
+                if (index > lastIndex.intValue()) {
+                    lastIndex.getAndSet(index);
+                }
                 message.append(operator).append(" ");
                 message.append(srcFile.getPath()).append(" to ").append(destination.getPath());
                 if (progressIndicator != null && progressIndicator.isRunning()) {
-                    progressIndicator.setText("TAF dependence recurse synchronize...(" + index + "/" + length + ")");
+                    progressIndicator.setText("TAF dependence recurse synchronize...(" +
+                            lastIndex.intValue() + "/" + length + ")");
                     progressIndicator.setText2(message.toString());
                 }
             }
