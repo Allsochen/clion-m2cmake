@@ -32,7 +32,7 @@ public class FileSynchronizeWorker {
         this.tafMakefileProperty = tafMakefileProperty;
         this.app = app;
         this.target = target;
-        executor = Executors.newFixedThreadPool(8);
+        executor = Executors.newFixedThreadPool(5);
     }
 
     /**
@@ -196,6 +196,7 @@ public class FileSynchronizeWorker {
             }
         }
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        executor.shutdown();
         return true;
     }
 }
