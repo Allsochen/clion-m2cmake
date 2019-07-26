@@ -5,7 +5,9 @@ import com.github.allsochen.m2cmake.makefile.TafMakefileProperty;
 import com.github.allsochen.m2cmake.utils.CollectionUtil;
 import com.github.allsochen.m2cmake.utils.Constants;
 import com.github.allsochen.m2cmake.utils.FileUtils;
+import com.github.allsochen.m2cmake.utils.ProjectUtil;
 import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.project.Project;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,17 +23,19 @@ public class FileSynchronizeWorker {
     private TafMakefileProperty tafMakefileProperty;
     private String app;
     private String target;
+    private Project project;
 
     private ExecutorService executor;
     private List<CompletableFuture<Boolean>> futures = new ArrayList<>();
     private AtomicInteger lastIndex = new AtomicInteger(0);
 
     public FileSynchronizeWorker(JsonConfig jsonConfig, TafMakefileProperty tafMakefileProperty,
-                                 String app, String target) {
+                                 String app, String target, Project project) {
         this.jsonConfig = jsonConfig;
         this.tafMakefileProperty = tafMakefileProperty;
         this.app = app;
         this.target = target;
+        this.project = project;
         executor = Executors.newFixedThreadPool(5);
     }
 
@@ -75,7 +79,7 @@ public class FileSynchronizeWorker {
         return false;
     }
 
-    private boolean isCopyPah(String path) {
+    private boolean isCopyPath(String path) {
         for (String remoteDirs : this.jsonConfig.getTafjceRemoteDirs()) {
             if (path.contains(remoteDirs)) {
                 return true;
@@ -90,7 +94,7 @@ public class FileSynchronizeWorker {
 
     private void copyFolder(File source, File destination,
                             ProgressIndicator progressIndicator,
-                            int index,
+                            final int index,
                             int length) {
         if (!source.exists()) {
             return;
@@ -136,6 +140,23 @@ public class FileSynchronizeWorker {
         }
     }
 
+    public void trySyncTafjceDependenceDirectory(ProgressIndicator progressIndicator, int index, int length) {
+        try {
+            List<String> paths = WebServersParser.parse(project.getBasePath());
+            for (String path : paths) {
+                File sourceDir = new File(path + File.separator + Constants.TAFJCE_DEPEND);
+                File destDir = new File(ProjectUtil.getTafjceDependenceDir(jsonConfig, target));
+                CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
+                    copyFolder(sourceDir, destDir, progressIndicator, index, length);
+                    return true;
+                }, executor);
+                futures.add(future);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public boolean perform(ProgressIndicator progressIndicator) {
         if (jsonConfig == null) {
             return false;
@@ -157,6 +178,7 @@ public class FileSynchronizeWorker {
             progressIndicator.setText2("start sync dependence files...");
         }
 
+        int length = jceIncludeFilePaths.size();
         Set<String> copiedDirs = new HashSet<>();
         for (int i = 0; i < jceIncludeFilePaths.size(); i++) {
             String includeFilePath = jceIncludeFilePaths.get(i);
@@ -173,8 +195,7 @@ public class FileSynchronizeWorker {
             }
             for (String tafjceRemoteMappingIncludeDir : tafjceRemoteMappingIncludeDirs) {
                 final int index = i + 1;
-                final int length = jceIncludeFilePaths.size();
-                if (!isCopyPah(tafjceRemoteMappingIncludeDir)) {
+                if (!isCopyPath(tafjceRemoteMappingIncludeDir)) {
                     continue;
                 }
                 File sourceDir = new File(tafjceRemoteMappingIncludeDir);
@@ -195,6 +216,7 @@ public class FileSynchronizeWorker {
                 }
             }
         }
+        trySyncTafjceDependenceDirectory(progressIndicator, 0, length);
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
         executor.shutdown();
         return true;

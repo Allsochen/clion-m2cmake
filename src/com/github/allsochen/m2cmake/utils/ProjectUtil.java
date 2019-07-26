@@ -7,6 +7,7 @@ import com.github.allsochen.m2cmake.configuration.Properties;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -58,6 +59,10 @@ public class ProjectUtil {
                     "m2cmake configuration error");
         }
         return jsonConfig;
+    }
+
+    public static String getTafjceDependenceDir(JsonConfig jsonConfig, String target) {
+        return jsonConfig.getTafjceLocalDir() + File.separator + Constants.TAFJCE_DEPEND + File.separator + target;
     }
 
 }

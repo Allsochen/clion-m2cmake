@@ -4,6 +4,7 @@ import com.github.allsochen.m2cmake.build.AutomaticReloadCMakeBuilder;
 import com.github.allsochen.m2cmake.configuration.JsonConfig;
 import com.github.allsochen.m2cmake.utils.CollectionUtil;
 import com.github.allsochen.m2cmake.utils.Constants;
+import com.github.allsochen.m2cmake.utils.ProjectUtil;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.project.Project;
@@ -121,6 +122,9 @@ public class CmakeFileGenerator {
             bw.write("file(GLOB_RECURSE CMAKE_FILES *.cpp *.h)");
             bw.newLine();
             bw.write("include_directories(./)");
+            bw.newLine();
+            String tafjcedepen = ProjectUtil.getTafjceDependenceDir(jsonConfig, target).replaceAll("\\\\", "/");
+            bw.write("include_directories(" + tafjcedepen + ")");
             bw.newLine();
             bw.write("add_executable(" + target + " ${CMAKE_FILES})");
             bw.newLine();

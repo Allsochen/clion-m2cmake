@@ -31,7 +31,7 @@ public class TafDependenceSynchronizeAction extends AnAction {
         }
 
         // Synchronized source dependence to destination.
-        FileSynchronizeWorker fsw = new FileSynchronizeWorker(jsonConfig, tafMakefileProperty, app, target);
+        FileSynchronizeWorker fsw = new FileSynchronizeWorker(jsonConfig, tafMakefileProperty, app, target, project);
 
         ProgressManager.getInstance().run(new Task.Backgroundable(project,
                 "TAF dependence recurse synchronize...") {
