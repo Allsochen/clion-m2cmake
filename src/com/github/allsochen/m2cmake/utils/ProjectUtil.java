@@ -62,7 +62,7 @@ public class ProjectUtil {
     }
 
     public static String getTafjceDependenceDir(JsonConfig jsonConfig, String target) {
-        return jsonConfig.getTafjceLocalDir() + File.separator + Constants.TAFJCE_DEPEND + File.separator + target;
+        return jsonConfig.getTafjceLocalDir() + File.separator + Constants.TAFJCE_DEPEND;
     }
 
 }

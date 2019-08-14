@@ -73,6 +73,7 @@ public class FileSynchronizeWorker {
                 suffix.equals("hpp") ||
                 suffix.equals("cc") ||
                 suffix.equals("jce") ||
+                suffix.equals("log") ||
                 suffix.equals("mk")) {
             return true;
         }
