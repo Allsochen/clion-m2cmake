@@ -11,11 +11,15 @@ import com.intellij.openapi.project.Project;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 public class FileSynchronizeWorker {
 
@@ -141,17 +145,21 @@ public class FileSynchronizeWorker {
         }
     }
 
-    public void trySyncTafjceDependenceDirectory(ProgressIndicator progressIndicator, int index, int length) {
+    private void trySyncTafjceDependenceDirectory(ProgressIndicator progressIndicator, int index, int length) {
         try {
             List<String> paths = WebServersParser.parse(project.getBasePath());
             for (String path : paths) {
-                File sourceDir = new File(path + File.separator + Constants.TAFJCE_DEPEND);
-                File destDir = new File(ProjectUtil.getTafjceDependenceDir(jsonConfig, target));
-                CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
-                    copyFolder(sourceDir, destDir, progressIndicator, index, length);
-                    return true;
-                }, executor);
-                futures.add(future);
+                Stream<Path> walk = Files.walk(Paths.get(path));
+                walk.filter(path1 -> path1.getFileName().endsWith(Constants.TAFJCE_DEPEND))
+                        .forEach(tafJceDepend -> {
+                            File sourceDir = tafJceDepend.toFile();
+                            File destDir = new File(ProjectUtil.getTafjceDependenceDir(jsonConfig, target));
+                            CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
+                                copyFolder(sourceDir, destDir, progressIndicator, index, length);
+                                return true;
+                            }, executor);
+                            futures.add(future);
+                        });
             }
         } catch (Exception e) {
             e.printStackTrace();

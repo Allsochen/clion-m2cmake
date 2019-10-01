@@ -123,8 +123,9 @@ public class CmakeFileGenerator {
             bw.newLine();
             bw.write("include_directories(./)");
             bw.newLine();
-            String tafjcedepen = ProjectUtil.getTafjceDependenceDir(jsonConfig, target).replaceAll("\\\\", "/");
-            bw.write("include_directories(" + tafjcedepen + ")");
+            String tafJceDepend = ProjectUtil.getTafjceDependenceDir(jsonConfig, target)
+                    .replaceAll("\\\\", "/");
+            bw.write("include_directories(" + tafJceDepend + ")");
             bw.newLine();
             bw.write("add_executable(" + target + " ${CMAKE_FILES})");
             bw.newLine();
