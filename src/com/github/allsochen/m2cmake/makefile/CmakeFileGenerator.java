@@ -98,7 +98,13 @@ public class CmakeFileGenerator {
             }
             bw.newLine();
 
-            bw.write("#服务依赖jce");
+            bw.write("#服务jce依赖");
+            bw.newLine();
+            bw.write("include_directories(./)");
+            bw.newLine();
+            String tafJceDepend = ProjectUtil.getTafjceDependenceDir(jsonConfig, target)
+                    .replaceAll("\\\\", "/");
+            bw.write("include_directories(" + tafJceDepend + ")");
             bw.newLine();
 
             List<String> localDir = new ArrayList<>();
@@ -120,12 +126,6 @@ public class CmakeFileGenerator {
             bw.newLine();
 
             bw.write("file(GLOB_RECURSE CMAKE_FILES *.cpp *.h)");
-            bw.newLine();
-            bw.write("include_directories(./)");
-            bw.newLine();
-            String tafJceDepend = ProjectUtil.getTafjceDependenceDir(jsonConfig, target)
-                    .replaceAll("\\\\", "/");
-            bw.write("include_directories(" + tafJceDepend + ")");
             bw.newLine();
             bw.write("add_executable(" + target + " ${CMAKE_FILES})");
             bw.newLine();
