@@ -28,13 +28,23 @@
             <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>
             <action id="m2cmake.DependenceSynchronizeAction"
                     class="com.github.allsochen.m2cmake.TafDependenceSynchronizeAction"
-                    text="TAF Dependence Recurse Synchronize...">
+                    text="TAF Makefile Dependence Synchronize...">
                 <keyboard-shortcut first-keystroke="alt K" second-keystroke="alt D" keymap="$default"/>
             </action>
             <action id="m2cmake.CmakeFileGenerateAction"
                     class="com.github.allsochen.m2cmake.CmakeFileGenerateAction"
-                    text="Transfer TAF makefile to CMakeList.txt..." keymap="Alt K,Alt G">
+                    text="Transfer TAF Makefile To CMakeList..." keymap="Alt K,Alt G">
                 <keyboard-shortcut first-keystroke="alt K" second-keystroke="alt G" keymap="$default"/>
+            </action>
+            <action id="m2cmake.BazelDependenceSynchronizeAction"
+                    class="com.github.allsochen.m2cmake.BazelDependenceSynchronizeAction"
+                    text="TAF Bazel Dependence Synchronize...">
+                <keyboard-shortcut first-keystroke="alt K" second-keystroke="alt A" keymap="$default"/>
+            </action>
+            <action id="m2cmake.BazelCmakeFileGenerateAction"
+                    class="com.github.allsochen.m2cmake.BazelCmakeFileGenerateAction"
+                    text="Transfer TAF Bazel To CMakeList..." keymap="Alt K,Alt B">
+                <keyboard-shortcut first-keystroke="alt K" second-keystroke="alt B" keymap="$default"/>
             </action>
         </group>
     </actions>

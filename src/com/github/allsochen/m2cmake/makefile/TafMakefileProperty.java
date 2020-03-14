@@ -155,7 +155,7 @@ public class TafMakefileProperty {
                     if (file.exists() && !uniqFilePaths.contains(file.getPath())) {
                         try {
                             // it's dependence.
-                            TafMakefileProperty tafMakefileProperty = TafMakefileAnalysis.extractInclude(file);
+                            TafMakefileProperty tafMakefileProperty = TafMakefileAnalyser.extractInclude(file);
                             tafMakefileProperty.getIncludes().forEach(referenceInclude -> {
                                 referenceInclude = toIncludePath(referenceInclude);
                                 if (referenceInclude != null && !referenceInclude.isEmpty()) {

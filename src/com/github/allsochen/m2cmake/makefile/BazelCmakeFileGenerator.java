@@ -2,8 +2,6 @@ package com.github.allsochen.m2cmake.makefile;
 
 import com.github.allsochen.m2cmake.build.AutomaticReloadCMakeBuilder;
 import com.github.allsochen.m2cmake.configuration.JsonConfig;
-import com.github.allsochen.m2cmake.utils.CollectionUtil;
-import com.github.allsochen.m2cmake.utils.Constants;
 import com.github.allsochen.m2cmake.utils.ProjectUtil;
 import com.github.allsochen.m2cmake.view.ConsoleWindow;
 import com.intellij.execution.ui.ConsoleViewContentType;
@@ -15,43 +13,36 @@ import com.intellij.openapi.vfs.VirtualFile;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
-public class CmakeFileGenerator {
+public class BazelCmakeFileGenerator {
     private String app;
     private String target;
     private String basePath;
-    private TafMakefileProperty tafMakefileProperty;
+    private BazelWorkspace bazelWorkspace;
     private JsonConfig jsonConfig;
     private ConsoleWindow consoleWindow;
 
-    public CmakeFileGenerator(String app, String target, String basePath,
-                              TafMakefileProperty tafMakefileProperty,
-                              JsonConfig jsonConfig,
-                              ConsoleWindow consoleWindow) {
+    public BazelCmakeFileGenerator(String app, String target, String basePath,
+                                   BazelWorkspace bazelWorkspace,
+                                   JsonConfig jsonConfig,
+                                   ConsoleWindow consoleWindow) {
         this.app = app;
         this.target = target;
         this.basePath = basePath;
-        this.tafMakefileProperty = tafMakefileProperty;
+        this.bazelWorkspace = bazelWorkspace;
         this.jsonConfig = jsonConfig;
         this.consoleWindow = consoleWindow;
     }
 
-    /**
-     * Filter the ../.. path and transfer to the real path.
-     *
-     * @param includePath
-     * @return
-     */
-    private String transferIncludePath(String includePath) {
-        if (!includePath.matches(".*[a-zA-z].*")) {
-            return "";
-        }
-        return this.tafMakefileProperty.transferMapping(includePath, jsonConfig.getDirMappings());
-    }
-
     public static File getCmakeListFile(String basePath) {
         return new File(basePath + File.separator + "CMakeLists.txt");
+    }
+
+    private String transferPathSeperator(String path) {
+        return path.replaceAll("\\\\", "/");
     }
 
     public void create() {
@@ -92,42 +83,68 @@ public class CmakeFileGenerator {
             }
 
             bw.newLine();
-            bw.write("#服务include");
+            bw.write("include_directories(./)");
             bw.newLine();
-            Set<String> includes = new LinkedHashSet<>(this.tafMakefileProperty.getIncludes());
-            for (String include : includes) {
-                include = transferIncludePath(include);
-                if (include != null && !include.isEmpty()) {
-                    bw.write("include_directories(" + transferIncludePath(include) + ")");
-                    bw.newLine();
+            bw.newLine();
+
+            List<String> bazelDependenceNames = bazelWorkspace.getDependenceName();
+            consoleWindow.println("bazelDependenceName: " + bazelDependenceNames.toString(),
+                    ConsoleViewContentType.NORMAL_OUTPUT);
+            bw.newLine();
+            bw.write("#bazel genfile includes");
+            bw.newLine();
+            String bazelGenFileDir = ProjectUtil.getBazelGenFilesPath(jsonConfig);
+            bw.write("include_directories(" + transferPathSeperator(bazelGenFileDir) + ")");
+            bw.newLine();
+            File bazelGenFileExternal = ProjectUtil.getBazelGenFilesExternalFile(jsonConfig);
+            File[] bazelGenFileExternals = bazelGenFileExternal.listFiles();
+            if (bazelGenFileExternals != null) {
+                for (File file : bazelGenFileExternals) {
+                    consoleWindow.println("bazelGenFileExternals name: " + file.getName(),
+                            ConsoleViewContentType.NORMAL_OUTPUT);
+                    if (file.isDirectory() && bazelDependenceNames.contains(file.getName())) {
+                        bw.write("include_directories(" + transferPathSeperator(file.getAbsolutePath()) + ")");
+                        bw.newLine();
+                    }
                 }
+            } else {
+                consoleWindow.println("bazel gen file external path is empty: " +
+                                bazelGenFileExternal.getAbsolutePath(),
+                        ConsoleViewContentType.LOG_WARNING_OUTPUT);
             }
             bw.newLine();
 
-            bw.write("#服务jce依赖");
+            bw.write("#bazel git repository includes");
             bw.newLine();
-            bw.write("include_directories(./)");
+            String bazelRepositoryDir = ProjectUtil.getBazelRepositoryFilesPath(jsonConfig);
+            bw.write("include_directories(" + transferPathSeperator(bazelRepositoryDir) + ")");
             bw.newLine();
-            String tafJceDepend = ProjectUtil.getTafjceDependenceDir(jsonConfig, target)
-                    .replaceAll("\\\\", "/");
-            bw.write("include_directories(" + tafJceDepend + ")");
-            bw.newLine();
-
-            List<String> localDir = new ArrayList<>();
-            localDir.add(jsonConfig.getTafjceLocalDir());
-            List<String> jceIncludeFilePaths = this.tafMakefileProperty.getJceDependenceRecurseIncludes(
-                    localDir, true);
-            // Add itself
-            jceIncludeFilePaths.add(Constants.HOME_TAFJCE + "/" + app + "/" + target);
-            jceIncludeFilePaths = CollectionUtil.uniq(jceIncludeFilePaths);
-            Collections.sort(jceIncludeFilePaths);
-            for (String include : jceIncludeFilePaths) {
-                if (include != null && !include.isEmpty()) {
-                    String dependenceLocalIncludePath = tafMakefileProperty.toLocalIncludePath(include,
-                            jsonConfig.getDirMappings());
-                    bw.write("include_directories(" + dependenceLocalIncludePath + ")");
-                    bw.newLine();
+            File bazelRepositoryFilesExternal = ProjectUtil.getBazelRepositoryExternalFile(jsonConfig);
+            File[] bazelRepositoryFilesExternals = bazelRepositoryFilesExternal.listFiles();
+            if (bazelRepositoryFilesExternals != null) {
+                for (File file : bazelRepositoryFilesExternals) {
+                    consoleWindow.println("bazelRepositoryFilesExternals name: " + file.getName(),
+                            ConsoleViewContentType.NORMAL_OUTPUT);
+                    if (file.isDirectory() && bazelDependenceNames.contains(file.getName())) {
+                        bw.write("include_directories(" + transferPathSeperator(file.getAbsolutePath()) + ")");
+                        bw.newLine();
+                    }
+                    // try to add include/src directory.
+                    File[] subFiles = file.listFiles();
+                    if (subFiles != null) {
+                        for (File subFile : subFiles) {
+                            if (subFile.isDirectory() && isIncludeOrSrc(subFile)) {
+                                bw.write("include_directories(" +
+                                        transferPathSeperator(subFile.getAbsolutePath()) + ")");
+                                bw.newLine();
+                            }
+                        }
+                    }
                 }
+            } else {
+                consoleWindow.println("bazel repository external path is empty: " +
+                                bazelRepositoryFilesExternal.getAbsolutePath(),
+                        ConsoleViewContentType.LOG_WARNING_OUTPUT);
             }
             bw.newLine();
 
@@ -139,11 +156,20 @@ public class CmakeFileGenerator {
             bw.close();
             cmakeFile.setLastModified(System.currentTimeMillis());
             consoleWindow.println("", ConsoleViewContentType.NORMAL_OUTPUT);
-            consoleWindow.println("Transfer TAF makefile to CMakeList finished.",
+            consoleWindow.println("Transfer TAF bazel to CMakeList finished.",
                     ConsoleViewContentType.ERROR_OUTPUT);
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private boolean isIncludeOrSrc(File file) {
+        String fileName = file.getName();
+        if (fileName.equals("include") ||
+                fileName.equals("src")) {
+            return true;
+        }
+        return false;
     }
 
     public void open(Project project) {
@@ -154,7 +180,7 @@ public class CmakeFileGenerator {
                     virtualFile.refresh(false, false);
                 }
             }
-            File cmakeFile = CmakeFileGenerator.getCmakeListFile(basePath);
+            File cmakeFile = BazelCmakeFileGenerator.getCmakeListFile(basePath);
 
             VirtualFile vf = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(cmakeFile);
             if (vf != null) {

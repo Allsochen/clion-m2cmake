@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TafMakefileAnalysis {
+public class TafMakefileAnalyser {
 
     public TafMakefileProperty analysis(String basePath) {
         TafMakefileProperty totalTmp = new TafMakefileProperty();
@@ -107,7 +107,7 @@ public class TafMakefileAnalysis {
     }
 
     public static void main(String[] args) throws Exception {
-        TafMakefileAnalysis tafMakefileAnalysis = new TafMakefileAnalysis();
+        TafMakefileAnalyser tafMakefileAnalysis = new TafMakefileAnalyser();
         List<File> files = new ArrayList<>();
         tafMakefileAnalysis.walk(new File("D:/Codes/C++/news"), files);
         System.out.println(files);
