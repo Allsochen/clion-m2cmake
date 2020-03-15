@@ -136,6 +136,7 @@ public class FileSynchronizeWorker {
     private boolean isIgnore(File file) {
         String name = file.getName();
         if (name.startsWith(".") ||
+                name.endsWith(".runfiles") ||
                 name.equals("_objs") ||
                 name.equals("bazel-bin") ||
                 name.equals("bazel-out")) {
@@ -150,16 +151,31 @@ public class FileSynchronizeWorker {
             progressIndicator.checkCanceled();
         } catch (ProcessCanceledException e) {
             consoleWindow.println("Synchronized canceled.", ConsoleViewContentType.ERROR_OUTPUT);
-            return ;
+            return;
         }
         if (!source.exists()) {
             return;
         }
         if (isIgnore(source)) {
-            consoleWindow.println("IGNORE: " + source.getPath(),
+            consoleWindow.println("IGNORE\t" + source.getPath(),
                     ConsoleViewContentType.LOG_DEBUG_OUTPUT);
             return;
         }
+
+        // Change the file in bazel-genfile directory to bazel-genfiles/external/bazelWorkspace/ directory.
+        // /xxx/bazel-genfile/A.cpp ==> /yyy/bazel-genfile/external/bazelWorkspace/A.cpp
+        String sourceParent = source.getParent();
+        String sourceFileName = source.getName();
+        if (bazelWorkspace != null && bazelWorkspace.isValid() &&
+                source.getParentFile().getName().equals(Constants.BAZEL_GENFILES) && source.isFile()) {
+            File genFilesExternalWorkspaceDir = ProjectUtil
+                    .getBazelGenFilesExternalWorkspaceFile(jsonConfig, bazelWorkspace.getTarget());
+            if (!genFilesExternalWorkspaceDir.exists()) {
+                genFilesExternalWorkspaceDir.mkdirs();
+            }
+            destination = new File(genFilesExternalWorkspaceDir, source.getName());
+        }
+
         if (source.isDirectory()) {
             // no force synchronize with base dependence.
             if (bazelWorkspace != null &&
@@ -205,11 +221,9 @@ public class FileSynchronizeWorker {
                 message.append(operator).append(" ").append(srcFile.getPath());
                 message2.append(operator).append("\t")
                         .append(srcFile.getPath()).append(" ===> ").append(destination.getPath());
-                if (progressIndicator.isRunning()) {
-                    progressIndicator.setText("TAF dependence synchronize...(" +
-                            lastTaskIndex.intValue() + "/" + totalTask.intValue() + ")");
-                    progressIndicator.setText2(message.toString());
-                }
+                progressIndicator.setText("TAF dependence synchronize...(" +
+                        lastTaskIndex.intValue() + "/" + totalTask.intValue() + ")");
+                progressIndicator.setText2(message.toString());
                 if (operator.equals("IGNORE")) {
                     consoleWindow.println(message2.toString(), ConsoleViewContentType.LOG_WARNING_OUTPUT);
                 } else {
@@ -218,42 +232,46 @@ public class FileSynchronizeWorker {
             }
         } else {
             totalTask.incrementAndGet();
-            CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
-                try {
-                    progressIndicator.checkCanceled();
-                } catch (ProcessCanceledException e) {
-                    consoleWindow.println("Synchronized canceled.", ConsoleViewContentType.ERROR_OUTPUT);
-                    return false;
-                }
-                try {
-                    return FileUtils.copyFileIfModified(source, destination);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                return true;
-            }, executor).thenApply(result -> {
-                StringBuilder message = new StringBuilder();
-                StringBuilder message2 = new StringBuilder();
-                String operator;
-                if (result) {
-                    operator = "SYNC";
-                    syncFileCount.incrementAndGet();
-                } else {
-                    operator = "UNMODIFIED";
-                    unmodifiedFileCount.incrementAndGet();
-                }
-                message.append(operator).append(" ").append(source.getPath());
-                message2.append(operator).append("\t").append(source.getPath())
-                        .append(" ===> ").append(destination.getPath());
-                int index = lastTaskIndex.incrementAndGet();
-                progressIndicator.setText("TAF dependence synchronize...(" +
-                        index + "/" + totalTask.intValue() + ")");
-                progressIndicator.setText2(message.toString());
-                consoleWindow.println(message2.toString(), ConsoleViewContentType.LOG_DEBUG_OUTPUT);
-                return true;
-            });
-            copyFutures.add(future);
+            copySingleFile(source, destination, progressIndicator);
         }
+    }
+
+    private void copySingleFile(File source, File destination, ProgressIndicator progressIndicator) {
+        CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
+            try {
+                progressIndicator.checkCanceled();
+            } catch (ProcessCanceledException e) {
+                consoleWindow.println("Synchronized canceled.", ConsoleViewContentType.ERROR_OUTPUT);
+                return false;
+            }
+            try {
+                return FileUtils.copyFileIfModified(source, destination);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return true;
+        }, executor).thenApply(result -> {
+            StringBuilder message = new StringBuilder();
+            StringBuilder message2 = new StringBuilder();
+            String operator;
+            if (result) {
+                operator = "SYNC";
+                syncFileCount.incrementAndGet();
+            } else {
+                operator = "UNMODIFIED";
+                unmodifiedFileCount.incrementAndGet();
+            }
+            message.append(operator).append(" ").append(source.getPath());
+            message2.append(operator).append("\t").append(source.getPath())
+                    .append(" ===> ").append(destination.getPath());
+            int index = lastTaskIndex.incrementAndGet();
+            progressIndicator.setText("TAF dependence synchronize...(" +
+                    index + "/" + totalTask.intValue() + ")");
+            progressIndicator.setText2(message.toString());
+            consoleWindow.println(message2.toString(), ConsoleViewContentType.LOG_DEBUG_OUTPUT);
+            return true;
+        });
+        copyFutures.add(future);
     }
 
     private void trySyncTafjceDependenceDirectory(ProgressIndicator progressIndicator, int length) {

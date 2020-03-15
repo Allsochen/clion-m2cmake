@@ -1,5 +1,7 @@
 package com.github.allsochen.m2cmake.makefile;
 
+import com.github.allsochen.m2cmake.configuration.JsonConfigBuilder;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,7 +49,7 @@ public class BazelWorkspace {
     }
 
     public boolean isValid() {
-        return !functionals.isEmpty();
+        return !functionals.isEmpty() && !getTarget().isEmpty();
     }
 
     public void merge(BazelWorkspace bazelWorkspace) {
@@ -79,10 +81,13 @@ public class BazelWorkspace {
 
     public static List<BazelFunctional> defaultFunctionals() {
         List<BazelFunctional> functionals = new ArrayList<>();
-        BazelFunctional bazelFunctional = new BazelFunctional();
-        bazelFunctional.setType(BazelFunctionalType.GIT_REPOSITORY);
-        bazelFunctional.setName("com_google_protobuf");
-        functionals.add(bazelFunctional);
+        List<String> modules = JsonConfigBuilder.defaultNoForceSyncModules();
+        for (String module : modules) {
+            BazelFunctional bazelFunctional = new BazelFunctional();
+            bazelFunctional.setType(BazelFunctionalType.GIT_REPOSITORY);
+            bazelFunctional.setName(module);
+            functionals.add(bazelFunctional);
+        }
         return functionals;
     }
 }

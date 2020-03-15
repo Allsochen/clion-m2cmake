@@ -92,4 +92,11 @@ public class ProjectUtil {
     public static File getBazelRepositoryExternalFile(JsonConfig jsonConfig) {
         return new File(getBazelRepositoryExternalFilesPath(jsonConfig));
     }
+
+    public static File getBazelGenFilesExternalWorkspaceFile(JsonConfig jsonConfig, String workspaceName) {
+        return new File(jsonConfig.getTafjceLocalDir() +
+                File.separator + Constants.BAZEL_GENFILES +
+                File.separator + "external" +
+                File.separator + workspaceName);
+    }
 }

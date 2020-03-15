@@ -75,11 +75,9 @@ public class BazelCmakeFileGenerator {
             bw.newLine();
 
             Set<String> configIncludes = new LinkedHashSet<>(this.jsonConfig.getIncludes());
-            if (configIncludes != null) {
-                for (String include : configIncludes) {
-                    bw.write("include_directories(" + include + ")");
-                    bw.newLine();
-                }
+            for (String include : configIncludes) {
+                bw.write("include_directories(" + include + ")");
+                bw.newLine();
             }
 
             bw.newLine();
@@ -97,6 +95,10 @@ public class BazelCmakeFileGenerator {
             bw.newLine();
             String bazelGenFileDir = ProjectUtil.getBazelGenFilesPath(jsonConfig);
             bw.write("include_directories(" + transferPathSeperator(bazelGenFileDir) + ")");
+            bw.newLine();
+            // Add itself dependence gen files.
+            File itself = ProjectUtil.getBazelGenFilesExternalWorkspaceFile(jsonConfig, bazelWorkspace.getTarget());
+            bw.write("include_directories(" + transferPathSeperator(itself.getAbsolutePath()) + ")");
             bw.newLine();
             File bazelGenFileExternal = ProjectUtil.getBazelGenFilesExternalFile(jsonConfig);
             File[] bazelGenFileExternals = bazelGenFileExternal.listFiles();
