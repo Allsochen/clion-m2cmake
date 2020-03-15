@@ -1,7 +1,6 @@
 package com.github.allsochen.m2cmake.dependence;
 
 import com.github.allsochen.m2cmake.configuration.JsonConfig;
-import com.github.allsochen.m2cmake.makefile.BazelFunctional;
 import com.github.allsochen.m2cmake.makefile.BazelWorkspace;
 import com.github.allsochen.m2cmake.makefile.TafMakefileProperty;
 import com.github.allsochen.m2cmake.utils.CollectionUtil;
@@ -10,6 +9,7 @@ import com.github.allsochen.m2cmake.utils.FileUtils;
 import com.github.allsochen.m2cmake.utils.ProjectUtil;
 import com.github.allsochen.m2cmake.view.ConsoleWindow;
 import com.intellij.execution.ui.ConsoleViewContentType;
+import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.project.Project;
 
@@ -36,10 +36,25 @@ public class FileSynchronizeWorker {
     private ConsoleWindow consoleWindow;
 
     private ExecutorService executor;
-    private List<CompletableFuture<Boolean>> futures = new ArrayList<>();
-    private AtomicInteger lastIndex = new AtomicInteger(0);
+    private List<CompletableFuture<Boolean>> scanFutures = new ArrayList<>();
+    private List<CompletableFuture<Boolean>> copyFutures = new ArrayList<>();
+    private AtomicInteger lastTaskIndex = new AtomicInteger(0);
+    private AtomicInteger totalTask = new AtomicInteger(0);
     private AtomicInteger ignoreFileCount = new AtomicInteger(0);
+    private AtomicInteger unmodifiedFileCount = new AtomicInteger(0);
     private AtomicInteger syncFileCount = new AtomicInteger(0);
+
+    private List<CopyTask> copyTasks = new ArrayList<>();
+
+    public static class CopyTask {
+        public File source;
+        public File destination;
+
+        public CopyTask(File source, File destination) {
+            this.source = source;
+            this.destination = destination;
+        }
+    }
 
     public FileSynchronizeWorker(JsonConfig jsonConfig, TafMakefileProperty tafMakefileProperty,
                                  BazelWorkspace bazelWorkspace,
@@ -129,19 +144,38 @@ public class FileSynchronizeWorker {
         return false;
     }
 
-    private void copyFolder(File source, File destination,
-                            ProgressIndicator progressIndicator,
-                            final int index,
-                            int length) {
+    private void scanAndCopyFiles(File source, File destination,
+                                  ProgressIndicator progressIndicator) {
+        try {
+            progressIndicator.checkCanceled();
+        } catch (ProcessCanceledException e) {
+            consoleWindow.println("Synchronized canceled.", ConsoleViewContentType.ERROR_OUTPUT);
+            return ;
+        }
         if (!source.exists()) {
             return;
         }
         if (isIgnore(source)) {
-            consoleWindow.println("Ignore file: " + source.getPath(),
+            consoleWindow.println("IGNORE: " + source.getPath(),
                     ConsoleViewContentType.LOG_DEBUG_OUTPUT);
             return;
         }
         if (source.isDirectory()) {
+            // no force synchronize with base dependence.
+            if (bazelWorkspace != null &&
+                    jsonConfig.getNoForceSyncModules().contains(source.getName()) &&
+                    destination.exists()) {
+                consoleWindow.println("EXIST\t" + source.getPath(),
+                        ConsoleViewContentType.ERROR_OUTPUT);
+                return;
+            }
+
+            if (bazelWorkspace != null && isUnderBazelProjectDirectory(source)) {
+                consoleWindow.println("EXIST\t" + source.getPath(),
+                        ConsoleViewContentType.ERROR_OUTPUT);
+                return;
+            }
+
             if (!destination.exists()) {
                 destination.mkdirs();
                 consoleWindow.println("CREATE\t" + destination.getPath(),
@@ -153,43 +187,72 @@ public class FileSynchronizeWorker {
             }
             for (String fileName : files) {
                 StringBuilder message = new StringBuilder();
+                StringBuilder message2 = new StringBuilder();
                 String operator = "IGNORE";
                 File srcFile = new File(source, fileName);
                 File destFile = new File(destination, fileName);
                 if ((isCopyFileFamily(fileName) && hasDiff(srcFile, destFile)) || srcFile.isDirectory()) {
-                    operator = "SYNC";
-                    if (!srcFile.isDirectory()) {
-                        syncFileCount.getAndIncrement();
-                    }
-                    copyFolder(srcFile, destFile, progressIndicator, index, length);
+                    operator = "SCAN";
+                    scanAndCopyFiles(srcFile, destFile, progressIndicator);
                 } else {
-                    ignoreFileCount.getAndIncrement();
+                    if ((isCopyFileFamily(fileName) && !hasDiff(srcFile, destFile))) {
+                        operator = "UNMODIFIED";
+                        unmodifiedFileCount.incrementAndGet();
+                    } else {
+                        ignoreFileCount.incrementAndGet();
+                    }
                 }
-                if (index > lastIndex.intValue()) {
-                    lastIndex.getAndSet(index);
-                }
-                message.append(operator).append("\t");
-                message.append(srcFile.getPath()).append(" To ").append(destination.getPath());
-                if (progressIndicator != null && progressIndicator.isRunning()) {
-                    progressIndicator.setText("TAF dependence recurse synchronize...(" +
-                            lastIndex.intValue() + "/" + length + ")");
+                message.append(operator).append(" ").append(srcFile.getPath());
+                message2.append(operator).append("\t")
+                        .append(srcFile.getPath()).append(" ===> ").append(destination.getPath());
+                if (progressIndicator.isRunning()) {
+                    progressIndicator.setText("TAF dependence synchronize...(" +
+                            lastTaskIndex.intValue() + "/" + totalTask.intValue() + ")");
                     progressIndicator.setText2(message.toString());
                 }
                 if (operator.equals("IGNORE")) {
-                    consoleWindow.println(message.toString(), ConsoleViewContentType.LOG_WARNING_OUTPUT);
+                    consoleWindow.println(message2.toString(), ConsoleViewContentType.LOG_WARNING_OUTPUT);
                 } else {
-                    consoleWindow.println(message.toString(), ConsoleViewContentType.NORMAL_OUTPUT);
+                    consoleWindow.println(message2.toString(), ConsoleViewContentType.NORMAL_OUTPUT);
                 }
             }
         } else {
-            futures.add(CompletableFuture.supplyAsync(() -> {
+            totalTask.incrementAndGet();
+            CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
+                try {
+                    progressIndicator.checkCanceled();
+                } catch (ProcessCanceledException e) {
+                    consoleWindow.println("Synchronized canceled.", ConsoleViewContentType.ERROR_OUTPUT);
+                    return false;
+                }
                 try {
                     return FileUtils.copyFileIfModified(source, destination);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                return false;
-            }, executor));
+                return true;
+            }, executor).thenApply(result -> {
+                StringBuilder message = new StringBuilder();
+                StringBuilder message2 = new StringBuilder();
+                String operator;
+                if (result) {
+                    operator = "SYNC";
+                    syncFileCount.incrementAndGet();
+                } else {
+                    operator = "UNMODIFIED";
+                    unmodifiedFileCount.incrementAndGet();
+                }
+                message.append(operator).append(" ").append(source.getPath());
+                message2.append(operator).append("\t").append(source.getPath())
+                        .append(" ===> ").append(destination.getPath());
+                int index = lastTaskIndex.incrementAndGet();
+                progressIndicator.setText("TAF dependence synchronize...(" +
+                        index + "/" + totalTask.intValue() + ")");
+                progressIndicator.setText2(message.toString());
+                consoleWindow.println(message2.toString(), ConsoleViewContentType.LOG_DEBUG_OUTPUT);
+                return true;
+            });
+            copyFutures.add(future);
         }
     }
 
@@ -203,10 +266,10 @@ public class FileSynchronizeWorker {
                             File sourceDir = tafJceDepend.toFile();
                             File destDir = new File(ProjectUtil.getTafjceDependenceDir(jsonConfig, target));
                             CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
-                                copyFolder(sourceDir, destDir, progressIndicator, 0, length);
+                                scanAndCopyFiles(sourceDir, destDir, progressIndicator);
                                 return true;
                             }, executor);
-                            futures.add(future);
+                            scanFutures.add(future);
                         });
             }
         } catch (Exception e) {
@@ -214,9 +277,31 @@ public class FileSynchronizeWorker {
         }
     }
 
+    private void moveBazelGenFiliesToFront(List<File> files) {
+        for (int i = 0; i < files.size(); i++) {
+            File file = files.get(i);
+            if (file.getName().equals(Constants.BAZEL_GENFILES) && i != 0) {
+                File removed = files.remove(i);
+                files.add(0, removed);
+            }
+        }
+    }
+
+    private boolean isBazelProjectDirectory(File file) {
+        String targetName = "bazel-" + bazelWorkspace.getTarget();
+        targetName = targetName.toLowerCase();
+        return file.getName().toLowerCase().equals(targetName);
+    }
+
+    private boolean isUnderBazelProjectDirectory(File file) {
+        String name = "bazel-" + bazelWorkspace.getTarget() +
+                File.separator + "external" +
+                File.separator + bazelWorkspace.getTarget();
+        name = name.toLowerCase();
+        return file.getAbsolutePath().toLowerCase().endsWith(name);
+    }
+
     private void trySyncBazelDependenceDirectory(ProgressIndicator progressIndicator) {
-        List<BazelFunctional> functionals = bazelWorkspace.getDependencies();
-        String workspaceName = bazelWorkspace.getTarget();
         try {
             List<String> syncPaths = WebServersParser.parse(project.getBasePath());
             for (String syncPath : syncPaths) {
@@ -228,7 +313,7 @@ public class FileSynchronizeWorker {
                             ConsoleViewContentType.ERROR_OUTPUT);
                     continue;
                 }
-                List<File> targetFiles = new ArrayList<>();
+                List<File> targetFiles = new LinkedList<>();
                 File[] files = rootFile.listFiles();
                 if (files == null) {
                     continue;
@@ -240,8 +325,7 @@ public class FileSynchronizeWorker {
                         targetFiles.add(file);
                     } else {
                         // Add bazel-workspaceName/external directory.
-                        if (fileName.toLowerCase().equals("bazel-" + workspaceName.toLowerCase()) &&
-                                subFiles != null) {
+                        if (isBazelProjectDirectory(file) && subFiles != null) {
                             for (File subFile : subFiles) {
                                 if (subFile.isDirectory() && subFile.getName().equals("external")) {
                                     targetFiles.add(subFile);
@@ -250,15 +334,16 @@ public class FileSynchronizeWorker {
                         }
                     }
                 }
+                // Synchronized bazel-genfiles directory first.
+                moveBazelGenFiliesToFront(targetFiles);
 
                 if (targetFiles.isEmpty()) {
                     consoleWindow.println("WARMING: Not found bazel-genfiles or bazel-" +
-                                    workspaceName + " directory. " +
+                                    bazelWorkspace.getTarget() + " directory. " +
                                     "Please execute `bazel build ...` command on remote server " +
                                     "before synchronize dependence.",
                             ConsoleViewContentType.ERROR_OUTPUT);
                 }
-                int length = targetFiles.size();
                 for (int i = 0; i < targetFiles.size(); i++) {
                     File sourceDir = targetFiles.get(i);
                     int index = i + 1;
@@ -270,10 +355,10 @@ public class FileSynchronizeWorker {
                         destDir = new File(ProjectUtil.getBazelRepositoryExternalFilesPath(jsonConfig));
                     }
                     CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
-                        copyFolder(sourceDir, destDir, progressIndicator, index, length);
+                        scanAndCopyFiles(sourceDir, destDir, progressIndicator);
                         return true;
                     }, executor);
-                    futures.add(future);
+                    scanFutures.add(future);
                 }
             }
         } catch (Exception e) {
@@ -295,8 +380,10 @@ public class FileSynchronizeWorker {
                 String message = "Start synchronize bazel dependence files...";
                 progressIndicator.setText2(message);
                 consoleWindow.println(message, ConsoleViewContentType.NORMAL_OUTPUT);
-                consoleWindow.println("dependence module: " + bazelWorkspace.getDependenceName().toString(),
+                consoleWindow.println("dependence modules: " + bazelWorkspace.getDependenceName().toString(),
                         ConsoleViewContentType.NORMAL_OUTPUT);
+                consoleWindow.println("no force sync modules: " + jsonConfig.getNoForceSyncModules(),
+                        ConsoleViewContentType.ERROR_OUTPUT);
             }
             trySyncBazelDependenceDirectory(progressIndicator);
         } else {
@@ -344,22 +431,25 @@ public class FileSynchronizeWorker {
                         if (!copiedDirs.contains(tafjceLocalMappingIncludeDir) ||
                                 (destDir.list() == null || destDir.list().length <= 0)) {
                             CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
-                                copyFolder(sourceDir, destDir, progressIndicator, index, length);
+                                scanAndCopyFiles(sourceDir, destDir, progressIndicator);
                                 return true;
                             }, executor);
                             copiedDirs.add(tafjceLocalMappingIncludeDir);
-                            futures.add(future);
+                            scanFutures.add(future);
                         }
                     }
                 }
                 trySyncTafjceDependenceDirectory(progressIndicator, length);
             }
         }
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+
+        CompletableFuture.allOf(scanFutures.toArray(new CompletableFuture[0])).join();
+        CompletableFuture.allOf(copyFutures.toArray(new CompletableFuture[0])).join();
+        long cost = (System.currentTimeMillis() - startMs) / 1000;
         consoleWindow.println("", ConsoleViewContentType.NORMAL_OUTPUT);
-        consoleWindow.println("TAF synchronize file finished. Cost " +
-                        (System.currentTimeMillis() - startMs) + " milliseconds, Ignore file " +
-                ignoreFileCount + ", Sync file " + syncFileCount + ".",
+        consoleWindow.println("TAF synchronize file finished. Cost " + cost + "s, Ignore file " +
+                        ignoreFileCount + ", Unmodified file " +
+                        unmodifiedFileCount + ", Sync file " + syncFileCount + ".",
                 ConsoleViewContentType.ERROR_OUTPUT);
         executor.shutdown();
         return true;

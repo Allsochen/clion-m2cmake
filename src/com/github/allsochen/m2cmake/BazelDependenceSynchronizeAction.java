@@ -45,6 +45,5 @@ public class BazelDependenceSynchronizeAction extends AnAction {
                 progressIndicator.setFraction(1.0);
             }
         });
-
     }
 }

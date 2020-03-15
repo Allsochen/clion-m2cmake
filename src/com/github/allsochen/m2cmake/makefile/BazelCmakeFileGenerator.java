@@ -87,6 +87,8 @@ public class BazelCmakeFileGenerator {
             bw.newLine();
             bw.newLine();
 
+            // add default functional.
+            bazelWorkspace.add(BazelWorkspace.defaultFunctionals());
             List<String> bazelDependenceNames = bazelWorkspace.getDependenceName();
             consoleWindow.println("bazelDependenceName: " + bazelDependenceNames.toString(),
                     ConsoleViewContentType.NORMAL_OUTPUT);

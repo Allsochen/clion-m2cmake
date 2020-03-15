@@ -14,6 +14,11 @@ public class JsonConfig {
     private boolean automaticReloadCMake = true;
     private List<String> tafjceRemoteDirs = new ArrayList<>();
     private String tafjceLocalDir = "";
+    private List<String> noForceSyncModules;
+
+    public JsonConfig() {
+        noForceSyncModules = JsonConfigBuilder.defaultNoForceSyncModules();
+    }
 
     public String getCmakeVersion() {
         return cmakeVersion;
@@ -61,5 +66,13 @@ public class JsonConfig {
 
     public void setTafjceLocalDir(String tafjceLocalDir) {
         this.tafjceLocalDir = tafjceLocalDir;
+    }
+
+    public List<String> getNoForceSyncModules() {
+        return noForceSyncModules;
+    }
+
+    public void setNoForceSyncModules(List<String> noForceSyncModules) {
+        this.noForceSyncModules = noForceSyncModules;
     }
 }

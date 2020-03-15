@@ -46,7 +46,18 @@ public class JsonConfigBuilder {
         jsonConfig.setTafjceRemoteDirs(tafjceSourceDirs);
 
         jsonConfig.setTafjceLocalDir("D:/Codes/tafjce");
+
+        jsonConfig.setNoForceSyncModules(defaultNoForceSyncModules());
         return gson.toJson(jsonConfig);
+    }
+
+    public static List<String> defaultNoForceSyncModules() {
+        List<String> noForceSyncModules = new ArrayList<>();
+        noForceSyncModules.add("com_google_protobuf");
+        noForceSyncModules.add("bazel_tools");
+        noForceSyncModules.add("zlib");
+        noForceSyncModules.add("taf");
+        return noForceSyncModules;
     }
 
     public JsonConfig deserialize(String json) {

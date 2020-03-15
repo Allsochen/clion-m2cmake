@@ -15,12 +15,6 @@ public class BazelWorkspace {
 
     BazelWorkspace() {
         this.functionals = new ArrayList<>();
-
-        // Add the google protobuf as default.
-        BazelFunctional bazelFunctional = new BazelFunctional();
-        bazelFunctional.setType(BazelFunctionalType.GIT_REPOSITORY);
-        bazelFunctional.setName("com_google_protobuf");
-        this.functionals.add(bazelFunctional);
     }
 
     public String getTarget() {
@@ -62,6 +56,12 @@ public class BazelWorkspace {
         }
     }
 
+    public void add(List<BazelFunctional> bazelFunctionals) {
+        for (BazelFunctional bazelFunctional : bazelFunctionals) {
+            add(bazelFunctional);
+        }
+    }
+
     public boolean add(BazelFunctional bazelFunctional) {
         for (BazelFunctional functional : functionals) {
             if (functional.getType() == bazelFunctional.getType() &&
@@ -74,6 +74,15 @@ public class BazelWorkspace {
     }
 
     public List<BazelFunctional> getFunctionals() {
+        return functionals;
+    }
+
+    public static List<BazelFunctional> defaultFunctionals() {
+        List<BazelFunctional> functionals = new ArrayList<>();
+        BazelFunctional bazelFunctional = new BazelFunctional();
+        bazelFunctional.setType(BazelFunctionalType.GIT_REPOSITORY);
+        bazelFunctional.setName("com_google_protobuf");
+        functionals.add(bazelFunctional);
         return functionals;
     }
 }
