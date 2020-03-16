@@ -79,6 +79,11 @@ public class BazelWorkspaceAnalyser {
                 functionalType = BazelFunctionalType.GIT_REPOSITORY;
                 isFunctionalStart = true;
                 isFunctionalEnd = false;
+            } else if (line.startsWith("http_archive(")) {
+                // functional begin.
+                functionalType = BazelFunctionalType.HTTP_ARCHIVE;
+                isFunctionalStart = true;
+                isFunctionalEnd = false;
             } else if (line.startsWith(")")) {
                 // functional end
                 functionalType = BazelFunctionalType.UNKNOWN;

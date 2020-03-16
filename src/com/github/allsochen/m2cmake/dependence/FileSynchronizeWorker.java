@@ -1,6 +1,7 @@
 package com.github.allsochen.m2cmake.dependence;
 
 import com.github.allsochen.m2cmake.configuration.JsonConfig;
+import com.github.allsochen.m2cmake.configuration.JsonConfigBuilder;
 import com.github.allsochen.m2cmake.makefile.BazelWorkspace;
 import com.github.allsochen.m2cmake.makefile.TafMakefileProperty;
 import com.github.allsochen.m2cmake.utils.CollectionUtil;
@@ -164,8 +165,6 @@ public class FileSynchronizeWorker {
 
         // Change the file in bazel-genfile directory to bazel-genfiles/external/bazelWorkspace/ directory.
         // /xxx/bazel-genfile/A.cpp ==> /yyy/bazel-genfile/external/bazelWorkspace/A.cpp
-        String sourceParent = source.getParent();
-        String sourceFileName = source.getName();
         if (bazelWorkspace != null && bazelWorkspace.isValid() &&
                 source.getParentFile().getName().equals(Constants.BAZEL_GENFILES) && source.isFile()) {
             File genFilesExternalWorkspaceDir = ProjectUtil
@@ -201,7 +200,8 @@ public class FileSynchronizeWorker {
             if (files == null) {
                 return;
             }
-            for (String fileName : files) {
+            List<String> priorityFiles = setFilesPriority(files);
+            for (String fileName : priorityFiles) {
                 StringBuilder message = new StringBuilder();
                 StringBuilder message2 = new StringBuilder();
                 String operator = "IGNORE";
@@ -234,6 +234,22 @@ public class FileSynchronizeWorker {
             totalTask.incrementAndGet();
             copySingleFile(source, destination, progressIndicator);
         }
+    }
+
+    private List<String> setFilesPriority(String[] files) {
+        List<String> priorityFiles = new LinkedList<>();
+        List<String> modules = JsonConfigBuilder.defaultNoForceSyncModules();
+        // push no force sync module to last.
+        for (String file : files) {
+            if (modules.contains(file)) {
+                // add to last.
+                priorityFiles.add(file);
+            } else {
+                // add to front.
+                priorityFiles.add(0, file);
+            }
+        }
+        return priorityFiles;
     }
 
     private void copySingleFile(File source, File destination, ProgressIndicator progressIndicator) {

@@ -9,6 +9,7 @@ enum BazelFunctionalType {
     UNKNOWN,
     WORKSPACE,
     GIT_REPOSITORY,
+    HTTP_ARCHIVE,
 }
 
 public class BazelWorkspace {
@@ -41,7 +42,8 @@ public class BazelWorkspace {
     public List<String> getDependenceName() {
         List<String> dependencies = new ArrayList<>();
         for (BazelFunctional bazelFunctional : functionals) {
-            if (bazelFunctional.getType() == BazelFunctionalType.GIT_REPOSITORY) {
+            if (bazelFunctional.getType() == BazelFunctionalType.GIT_REPOSITORY ||
+                    bazelFunctional.getType() == BazelFunctionalType.HTTP_ARCHIVE) {
                 dependencies.add(bazelFunctional.getName());
             }
         }
