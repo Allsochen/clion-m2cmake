@@ -24,6 +24,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class FileSynchronizeWorker {
@@ -290,21 +291,29 @@ public class FileSynchronizeWorker {
         copyFutures.add(future);
     }
 
-    private void trySyncTafjceDependenceDirectory(ProgressIndicator progressIndicator, int length) {
+    private void trySyncTafjceDependenceDirectory(ProgressIndicator progressIndicator) {
         try {
             List<String> paths = WebServersParser.parse(project.getBasePath());
             for (String path : paths) {
+                consoleWindow.println("find 'tafjcedepend' directory in: " + path,
+                    ConsoleViewContentType.LOG_DEBUG_OUTPUT);
                 Stream<Path> walk = Files.walk(Paths.get(path));
-                walk.filter(path1 -> path1.getFileName().endsWith(Constants.TAFJCE_DEPEND))
-                        .forEach(tafJceDepend -> {
-                            File sourceDir = tafJceDepend.toFile();
-                            File destDir = new File(ProjectUtil.getTafjceDependenceDir(jsonConfig, target));
-                            CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
-                                scanAndCopyFiles(sourceDir, destDir, progressIndicator);
-                                return true;
-                            }, executor);
-                            scanFutures.add(future);
-                        });
+                List<Path> pathList = walk.filter(path1 -> path1.getFileName().endsWith(Constants.TAFJCE_DEPEND))
+                        .collect(Collectors.toList());
+                for (Path tafJceDependencePath : pathList) {
+                    File sourceDir = tafJceDependencePath.toFile();
+                    File destDir = new File(ProjectUtil.getTafjceDependenceDir(jsonConfig, target));
+                    consoleWindow.println("Try async. source directory: " +
+                                    sourceDir.getAbsolutePath() +
+                                    " dest directory: " +
+                                    destDir.getAbsolutePath(),
+                            ConsoleViewContentType.LOG_DEBUG_OUTPUT);
+                    CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
+                        scanAndCopyFiles(sourceDir, destDir, progressIndicator);
+                        return true;
+                    }, executor);
+                    scanFutures.add(future);
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -339,7 +348,8 @@ public class FileSynchronizeWorker {
         try {
             List<String> syncPaths = WebServersParser.parse(project.getBasePath());
             for (String syncPath : syncPaths) {
-                Stream<Path> walk = Files.walk(Paths.get(syncPath));
+                consoleWindow.println("sync remote path: " + syncPath,
+                        ConsoleViewContentType.LOG_DEBUG_OUTPUT);
                 File rootFile = new File(syncPath);
                 if (!rootFile.exists() || !rootFile.isDirectory()) {
                     consoleWindow.println("WARMING: remote synchronize path is empty. " +
@@ -388,6 +398,9 @@ public class FileSynchronizeWorker {
                     } else {
                         destDir = new File(ProjectUtil.getBazelRepositoryExternalFilesPath(jsonConfig));
                     }
+                    consoleWindow.println("Try async. source directory: " + sourceDir.getAbsolutePath() +
+                                    " dest directory: " + destDir.getAbsolutePath(),
+                            ConsoleViewContentType.LOG_DEBUG_OUTPUT);
                     CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
                         scanAndCopyFiles(sourceDir, destDir, progressIndicator);
                         return true;
@@ -448,15 +461,22 @@ public class FileSynchronizeWorker {
                     }
                     File destDir = new File(tafjceLocalMappingIncludeDir);
                     if (!destDir.exists()) {
-                        destDir.mkdirs();
+                        if (!destDir.mkdirs()) {
+                            consoleWindow.println("create directory failure: " + destDir.getAbsolutePath(),
+                                    ConsoleViewContentType.ERROR_OUTPUT);
+                        }
                     }
                     for (String tafjceRemoteMappingIncludeDir : tafjceRemoteMappingIncludeDirs) {
-                        final int index = i + 1;
+                        consoleWindow.println("tafjceRemoteMappingIncludeDir: " +
+                                        tafjceRemoteMappingIncludeDir,
+                                ConsoleViewContentType.ERROR_OUTPUT);
                         if (!isCopyPath(tafjceRemoteMappingIncludeDir)) {
                             continue;
                         }
                         File sourceDir = new File(tafjceRemoteMappingIncludeDir);
                         if (!sourceDir.exists()) {
+                            consoleWindow.println("source directory not exist: " + sourceDir.getAbsolutePath(),
+                                    ConsoleViewContentType.ERROR_OUTPUT);
                             continue;
                         }
                         if (!sourceDir.isDirectory()) {
@@ -473,7 +493,7 @@ public class FileSynchronizeWorker {
                         }
                     }
                 }
-                trySyncTafjceDependenceDirectory(progressIndicator, length);
+                trySyncTafjceDependenceDirectory(progressIndicator);
             }
         }
 

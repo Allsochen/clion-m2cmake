@@ -47,6 +47,11 @@ public class WebServersParser {
         return null;
     }
 
+    public static boolean isWindows() {
+        String os = System.getProperty("os.name");
+        return os.toLowerCase().startsWith("win");
+    }
+
     public static List<String> parse(String basePath) {
         List<String> paths = new ArrayList<>();
         Document webServersDoc = read(basePath, "webServers.xml");
@@ -68,11 +73,14 @@ public class WebServersParser {
             Element fileTransfer = findFileTransferNode(webServer.getElementsByTagName("fileTransfer"));
             if (name != null && fileTransfer != null) {
                 Element pathsElement = findPaths(pathsNode, name);
+                if (pathsElement == null) {
+                    continue;
+                }
                 NodeList mappings = pathsElement.getElementsByTagName("mapping");
                 for (int j = 0; j < mappings.getLength(); j++) {
                     Element mappingElement = (Element) mappings.item(j);
-                    String deploy = mappingElement.getAttribute("deploy").replaceAll("/", "\\\\");
-                    paths.add(fileTransfer.getAttribute("mountedRoot") + deploy);
+                    String deploy = mappingElement.getAttribute("deploy").replaceAll("/", "");
+                    paths.add(fileTransfer.getAttribute("mountedRoot") + File.separator + deploy);
                 }
             }
         }
@@ -82,6 +90,7 @@ public class WebServersParser {
     public static void main(String[] args) {
         String a = "/aaa\\ff";
         System.out.println(a.replaceAll("/", "\\\\"));
+        System.out.println(a.replaceAll("/", File.separator));
         System.out.println(a.replaceAll("\\\\", "/"));
     }
 }
