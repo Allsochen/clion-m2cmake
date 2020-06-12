@@ -140,7 +140,6 @@ public class FileSynchronizeWorker {
         if (name.startsWith(".") ||
                 name.endsWith(".runfiles") ||
                 name.equals("_objs") ||
-                name.equals("bazel-bin") ||
                 name.equals("bazel-out")) {
             return true;
         }
@@ -166,14 +165,15 @@ public class FileSynchronizeWorker {
 
         // Change the file in bazel-genfile directory to bazel-genfiles/external/bazelWorkspace/ directory.
         // /xxx/bazel-genfile/A.cpp ==> /yyy/bazel-genfile/external/bazelWorkspace/A.cpp
+        // Parent directory: workspace/bazel-bin
         if (bazelWorkspace != null && bazelWorkspace.isValid() &&
-                source.getParentFile().getName().equals(Constants.BAZEL_GENFILES) && source.isFile()) {
-            File genFilesExternalWorkspaceDir = ProjectUtil
-                    .getBazelGenFilesExternalWorkspaceFile(jsonConfig, bazelWorkspace.getTarget());
-            if (!genFilesExternalWorkspaceDir.exists()) {
-                genFilesExternalWorkspaceDir.mkdirs();
+                source.getParentFile().getName().equals(Constants.BAZEL_BIN) && source.isFile()) {
+            File bazelBinExternalWorkspaceDir = ProjectUtil
+                    .getBazelBinExternalWorkspaceFile(jsonConfig, bazelWorkspace.getTarget());
+            if (!bazelBinExternalWorkspaceDir.exists()) {
+                bazelBinExternalWorkspaceDir.mkdirs();
             }
-            destination = new File(genFilesExternalWorkspaceDir, source.getName());
+            destination = new File(bazelBinExternalWorkspaceDir, source.getName());
         }
 
         if (source.isDirectory()) {
@@ -320,10 +320,10 @@ public class FileSynchronizeWorker {
         }
     }
 
-    private void moveBazelGenFiliesToFront(List<File> files) {
+    private void moveBazelBinToFront(List<File> files) {
         for (int i = 0; i < files.size(); i++) {
             File file = files.get(i);
-            if (file.getName().equals(Constants.BAZEL_GENFILES) && i != 0) {
+            if (file.getName().equals(Constants.BAZEL_BIN) && i != 0) {
                 File removed = files.remove(i);
                 files.add(0, removed);
             }
@@ -365,7 +365,7 @@ public class FileSynchronizeWorker {
                 for (File file : files) {
                     String fileName = file.getName();
                     File[] subFiles = file.listFiles();
-                    if (fileName.equals(Constants.BAZEL_GENFILES)) {
+                    if (fileName.equals(Constants.BAZEL_BIN)) {
                         targetFiles.add(file);
                     } else {
                         // Add bazel-workspaceName/external directory.
@@ -378,8 +378,8 @@ public class FileSynchronizeWorker {
                         }
                     }
                 }
-                // Synchronized bazel-genfiles directory first.
-                moveBazelGenFiliesToFront(targetFiles);
+                // Synchronized bazel-bin directory first.
+                moveBazelBinToFront(targetFiles);
 
                 if (targetFiles.isEmpty()) {
                     consoleWindow.println("WARMING: Not found bazel-genfiles or bazel-" +
@@ -393,8 +393,8 @@ public class FileSynchronizeWorker {
                     int index = i + 1;
                     // jce gen files
                     File destDir;
-                    if (sourceDir.getName().equals(Constants.BAZEL_GENFILES)) {
-                        destDir = new File(ProjectUtil.getBazelGenFilesPath(jsonConfig));
+                    if (sourceDir.getName().equals(Constants.BAZEL_BIN)) {
+                        destDir = new File(ProjectUtil.getBazelBinFilesPath(jsonConfig));
                     } else {
                         destDir = new File(ProjectUtil.getBazelRepositoryExternalFilesPath(jsonConfig));
                     }

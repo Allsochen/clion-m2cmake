@@ -5,6 +5,7 @@ import com.intellij.execution.filters.TextConsoleBuilderFactory;
 import com.intellij.execution.ui.ConsoleView;
 import com.intellij.execution.ui.ConsoleViewContentType;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.wm.RegisterToolWindowTask;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowAnchor;
 import com.intellij.openapi.wm.ToolWindowManager;
@@ -29,8 +30,10 @@ public class ConsoleWindow {
         consoleView = builder.getConsole();
         window = manager.getToolWindow(title);
         if (window == null) {
+//            manager.registerToolWindow(new RegisterToolWindowTask(title, ToolWindowAnchor.BOTTOM,
+//                    consoleView.getComponent(), true, true, true, true, null, null, null));
             window = manager.registerToolWindow(title, consoleView.getComponent(), ToolWindowAnchor.BOTTOM);
-            window.setTitle(title);
+//            window.setTitle(title);
         }
     }
 

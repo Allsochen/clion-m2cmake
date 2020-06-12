@@ -69,8 +69,8 @@ public class ProjectUtil {
         return jsonConfig.getTafjceLocalDir() + File.separator + Constants.TAFJCE_DEPEND;
     }
 
-    public static String getBazelGenFilesPath(JsonConfig jsonConfig) {
-        return jsonConfig.getTafjceLocalDir() + File.separator + Constants.BAZEL_GENFILES;
+    public static String getBazelBinFilesPath(JsonConfig jsonConfig) {
+        return jsonConfig.getTafjceLocalDir() + File.separator + Constants.BAZEL_BIN;
     }
 
     public static String getBazelRepositoryFilesPath(JsonConfig jsonConfig) {
@@ -83,9 +83,9 @@ public class ProjectUtil {
                 File.separator + "external";
     }
 
-    public static File getBazelGenFilesExternalFile(JsonConfig jsonConfig) {
+    public static File getBazelBinExternalFile(JsonConfig jsonConfig) {
         return new File(jsonConfig.getTafjceLocalDir() +
-                File.separator + Constants.BAZEL_GENFILES +
+                File.separator + Constants.BAZEL_BIN +
                 File.separator + "external");
     }
 
@@ -93,9 +93,9 @@ public class ProjectUtil {
         return new File(getBazelRepositoryExternalFilesPath(jsonConfig));
     }
 
-    public static File getBazelGenFilesExternalWorkspaceFile(JsonConfig jsonConfig, String workspaceName) {
+    public static File getBazelBinExternalWorkspaceFile(JsonConfig jsonConfig, String workspaceName) {
         return new File(jsonConfig.getTafjceLocalDir() +
-                File.separator + Constants.BAZEL_GENFILES +
+                File.separator + Constants.BAZEL_BIN +
                 File.separator + "external" +
                 File.separator + workspaceName);
     }

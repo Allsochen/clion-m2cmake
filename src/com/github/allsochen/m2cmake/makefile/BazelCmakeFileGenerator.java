@@ -93,14 +93,14 @@ public class BazelCmakeFileGenerator {
             bw.newLine();
             bw.write("#bazel genfile includes");
             bw.newLine();
-            String bazelGenFileDir = ProjectUtil.getBazelGenFilesPath(jsonConfig);
+            String bazelGenFileDir = ProjectUtil.getBazelBinFilesPath(jsonConfig);
             bw.write("include_directories(" + transferPathSeperator(bazelGenFileDir) + ")");
             bw.newLine();
             // Add itself dependence gen files.
-            File itself = ProjectUtil.getBazelGenFilesExternalWorkspaceFile(jsonConfig, bazelWorkspace.getTarget());
+            File itself = ProjectUtil.getBazelBinExternalWorkspaceFile(jsonConfig, bazelWorkspace.getTarget());
             bw.write("include_directories(" + transferPathSeperator(itself.getAbsolutePath()) + ")");
             bw.newLine();
-            File bazelGenFileExternal = ProjectUtil.getBazelGenFilesExternalFile(jsonConfig);
+            File bazelGenFileExternal = ProjectUtil.getBazelBinExternalFile(jsonConfig);
             File[] bazelGenFileExternals = bazelGenFileExternal.listFiles();
             if (bazelGenFileExternals != null) {
                 for (File file : bazelGenFileExternals) {

@@ -6,7 +6,7 @@ public class Constants {
 
     public static final String TAFJCE_DEPEND = "tafjcedepend";
 
-    public static final String BAZEL_GENFILES = "bazel-genfiles";
+    public static final String BAZEL_BIN = "bazel-bin";
 
     public static final String BAZEL_REPOSITORY = "bazel-repository";
 }
