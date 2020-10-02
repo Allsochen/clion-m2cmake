@@ -1,6 +1,7 @@
 package com.github.allsochen.m2cmake;
 
 import com.github.allsochen.m2cmake.configuration.JsonConfig;
+import com.github.allsochen.m2cmake.dependence.FileSynchronizeWorker;
 import com.github.allsochen.m2cmake.makefile.BazelCmakeFileGenerator;
 import com.github.allsochen.m2cmake.makefile.BazelWorkspace;
 import com.github.allsochen.m2cmake.makefile.BazelWorkspaceAnalyser;
@@ -17,7 +18,7 @@ public class BazelCmakeFileGenerateAction extends AnAction {
         Project project = event.getProject();
         String basePath = project.getBasePath();
 
-        BazelWorkspace bazelWorkspace = BazelWorkspaceAnalyser.analysis(basePath);
+        BazelWorkspace bazelWorkspace = BazelWorkspaceAnalyser.analysis(basePath, project.getName());
 
         String app = ProjectUtil.chooseApp(null);
         String target = ProjectUtil.chooseTarget(project.getName(), null, bazelWorkspace.getTarget());
@@ -28,8 +29,11 @@ public class BazelCmakeFileGenerateAction extends AnAction {
         }
 
         ConsoleWindow consoleWindow = ConsoleWindow.getInstance(project);
+        // Synchronized source dependence to destination.
+        FileSynchronizeWorker fsw = new FileSynchronizeWorker(jsonConfig, null, bazelWorkspace,
+                app, target, project);
         BazelCmakeFileGenerator generator = new BazelCmakeFileGenerator(app, target,
-                basePath, bazelWorkspace, jsonConfig, consoleWindow);
+                basePath, bazelWorkspace, jsonConfig, consoleWindow, fsw);
         generator.create();
         generator.open(project);
         generator.reload();

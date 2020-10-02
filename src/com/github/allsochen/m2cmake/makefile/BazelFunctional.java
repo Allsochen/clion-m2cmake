@@ -8,6 +8,14 @@ public class BazelFunctional {
     private String name;
     private LinkedHashMap<String, ArrayList<String>> options = new LinkedHashMap<>();
 
+    public BazelFunctional() {
+    }
+
+    public BazelFunctional(BazelFunctionalType type, String name) {
+        this.type = type;
+        this.name = name;
+    }
+
     public BazelFunctionalType getType() {
         return type;
     }

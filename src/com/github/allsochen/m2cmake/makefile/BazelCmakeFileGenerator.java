@@ -2,6 +2,7 @@ package com.github.allsochen.m2cmake.makefile;
 
 import com.github.allsochen.m2cmake.build.AutomaticReloadCMakeBuilder;
 import com.github.allsochen.m2cmake.configuration.JsonConfig;
+import com.github.allsochen.m2cmake.dependence.FileSynchronizeWorker;
 import com.github.allsochen.m2cmake.utils.ProjectUtil;
 import com.github.allsochen.m2cmake.view.ConsoleWindow;
 import com.intellij.execution.ui.ConsoleViewContentType;
@@ -13,9 +14,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class BazelCmakeFileGenerator {
     private String app;
@@ -24,17 +23,20 @@ public class BazelCmakeFileGenerator {
     private BazelWorkspace bazelWorkspace;
     private JsonConfig jsonConfig;
     private ConsoleWindow consoleWindow;
+    private FileSynchronizeWorker fsw;
 
     public BazelCmakeFileGenerator(String app, String target, String basePath,
-                                   BazelWorkspace bazelWorkspace,
-                                   JsonConfig jsonConfig,
-                                   ConsoleWindow consoleWindow) {
+            BazelWorkspace bazelWorkspace,
+            JsonConfig jsonConfig,
+            ConsoleWindow consoleWindow,
+            FileSynchronizeWorker fsw) {
         this.app = app;
         this.target = target;
         this.basePath = basePath;
         this.bazelWorkspace = bazelWorkspace;
         this.jsonConfig = jsonConfig;
         this.consoleWindow = consoleWindow;
+        this.fsw = fsw;
     }
 
     public static File getCmakeListFile(String basePath) {
@@ -71,7 +73,7 @@ public class BazelCmakeFileGenerator {
             bw.newLine();
 
             bw.newLine();
-            bw.write("#配置include");
+            bw.write("# Configuration includes");
             bw.newLine();
 
             Set<String> configIncludes = new LinkedHashSet<>(this.jsonConfig.getIncludes());
@@ -83,7 +85,6 @@ public class BazelCmakeFileGenerator {
             bw.newLine();
             bw.write("include_directories(./)");
             bw.newLine();
-            bw.newLine();
 
             // add default functional.
             bazelWorkspace.add(BazelWorkspace.defaultFunctionals());
@@ -91,34 +92,50 @@ public class BazelCmakeFileGenerator {
             consoleWindow.println("bazelDependenceName: " + bazelDependenceNames.toString(),
                     ConsoleViewContentType.NORMAL_OUTPUT);
             bw.newLine();
-            bw.write("#bazel genfile includes");
+            bw.write("# Bazel bin includes");
             bw.newLine();
-            String bazelGenFileDir = ProjectUtil.getBazelBinFilesPath(jsonConfig);
-            bw.write("include_directories(" + transferPathSeperator(bazelGenFileDir) + ")");
+            String bazelBinFilesPath = ProjectUtil.getBazelBinFilesPath(jsonConfig);
+            bw.write("include_directories(" + transferPathSeperator(bazelBinFilesPath) + ")");
             bw.newLine();
+
             // Add itself dependence gen files.
             File itself = ProjectUtil.getBazelBinExternalWorkspaceFile(jsonConfig, bazelWorkspace.getTarget());
             bw.write("include_directories(" + transferPathSeperator(itself.getAbsolutePath()) + ")");
             bw.newLine();
-            File bazelGenFileExternal = ProjectUtil.getBazelBinExternalFile(jsonConfig);
-            File[] bazelGenFileExternals = bazelGenFileExternal.listFiles();
-            if (bazelGenFileExternals != null) {
-                for (File file : bazelGenFileExternals) {
-                    consoleWindow.println("bazelGenFileExternals name: " + file.getName(),
+
+            List<File> childrenDirectory = getSyncSubDirectory();
+
+            File bazelBinExternalFile = ProjectUtil.getBazelBinExternalFile(jsonConfig);
+            File[] bazelBinFileExternals = bazelBinExternalFile.listFiles();
+            if (bazelBinFileExternals != null) {
+                Set<String> includes = new TreeSet<>();
+                for (File file : bazelBinFileExternals) {
+                    consoleWindow.println("bazelBinFileExternals name: " + file.getName(),
                             ConsoleViewContentType.NORMAL_OUTPUT);
                     if (file.isDirectory() && bazelDependenceNames.contains(file.getName())) {
-                        bw.write("include_directories(" + transferPathSeperator(file.getAbsolutePath()) + ")");
-                        bw.newLine();
+                        includes.add(transferPathSeperator(file.getAbsolutePath()));
                     }
+                }
+                // Add remote real dependence path.
+                for (File file : childrenDirectory) {
+                    if (file.isDirectory()) {
+                        // bazel-bin/name
+                        String dependence = bazelBinExternalFile.getAbsolutePath() + File.separator + file.getName();
+                        includes.add(transferPathSeperator(dependence));
+                    }
+                }
+                for (String include : includes) {
+                    bw.write("include_directories(" + include + ")");
+                    bw.newLine();
                 }
             } else {
                 consoleWindow.println("bazel gen file external path is empty: " +
-                                bazelGenFileExternal.getAbsolutePath(),
+                                bazelBinExternalFile.getAbsolutePath(),
                         ConsoleViewContentType.LOG_WARNING_OUTPUT);
             }
             bw.newLine();
 
-            bw.write("#bazel git repository includes");
+            bw.write("# Bazel git repository includes");
             bw.newLine();
             String bazelRepositoryDir = ProjectUtil.getBazelRepositoryFilesPath(jsonConfig);
             bw.write("include_directories(" + transferPathSeperator(bazelRepositoryDir) + ")");
@@ -126,24 +143,34 @@ public class BazelCmakeFileGenerator {
             File bazelRepositoryFilesExternal = ProjectUtil.getBazelRepositoryExternalFile(jsonConfig);
             File[] bazelRepositoryFilesExternals = bazelRepositoryFilesExternal.listFiles();
             if (bazelRepositoryFilesExternals != null) {
+                Set<String> includes = new TreeSet<>();
                 for (File file : bazelRepositoryFilesExternals) {
                     consoleWindow.println("bazelRepositoryFilesExternals name: " + file.getName(),
                             ConsoleViewContentType.NORMAL_OUTPUT);
                     if (file.isDirectory() && bazelDependenceNames.contains(file.getName())) {
-                        bw.write("include_directories(" + transferPathSeperator(file.getAbsolutePath()) + ")");
-                        bw.newLine();
+                        includes.add(transferPathSeperator(file.getAbsolutePath()));
                     }
                     // try to add include/src directory.
                     File[] subFiles = file.listFiles();
                     if (subFiles != null) {
                         for (File subFile : subFiles) {
                             if (subFile.isDirectory() && isIncludeOrSrc(subFile)) {
-                                bw.write("include_directories(" +
-                                        transferPathSeperator(subFile.getAbsolutePath()) + ")");
-                                bw.newLine();
+                                includes.add(transferPathSeperator(subFile.getAbsolutePath()));
                             }
                         }
                     }
+                }
+                // Add remote real dependence path.
+                for (File file : childrenDirectory) {
+                    if (file.isDirectory()) {
+                        // bazel-bin/name
+                        String dependence = bazelBinExternalFile.getAbsolutePath() + File.separator + file.getName();
+                        includes.add(transferPathSeperator(dependence));
+                    }
+                }
+                for (String include : includes) {
+                    bw.write("include_directories(" + include + ")");
+                    bw.newLine();
                 }
             } else {
                 consoleWindow.println("bazel repository external path is empty: " +
@@ -152,7 +179,7 @@ public class BazelCmakeFileGenerator {
             }
             bw.newLine();
 
-            bw.write("file(GLOB_RECURSE CMAKE_FILES *.cpp *.h)");
+            bw.write("file(GLOB_RECURSE CMAKE_FILES *.c *.cc *.cpp *.h)");
             bw.newLine();
             bw.write("add_executable(" + target + " ${CMAKE_FILES})");
             bw.newLine();
@@ -165,6 +192,16 @@ public class BazelCmakeFileGenerator {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private List<File> getSyncSubDirectory() {
+        List<File> children = new ArrayList<>();
+        for (File file : fsw.getBazelSyncDirectory()) {
+            if (file.isDirectory()) {
+                children.add(file);
+            }
+        }
+        return children;
     }
 
     private boolean isIncludeOrSrc(File file) {

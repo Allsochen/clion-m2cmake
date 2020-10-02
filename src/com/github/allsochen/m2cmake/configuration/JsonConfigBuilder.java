@@ -53,10 +53,25 @@ public class JsonConfigBuilder {
 
     public static List<String> defaultNoForceSyncModules() {
         List<String> noForceSyncModules = new ArrayList<>();
+        noForceSyncModules.add("com_github_gflags_gflags");
+        noForceSyncModules.add("com_github_tencent_rapidjson");
+        noForceSyncModules.add("com_github_jbeder_yaml_cpp");
         noForceSyncModules.add("com_google_protobuf");
         noForceSyncModules.add("bazel_tools");
         noForceSyncModules.add("zlib");
         noForceSyncModules.add("taf");
+        noForceSyncModules.add("trpc_cpp");
+        noForceSyncModules.add("dcache_trpc");
+        noForceSyncModules.add("opentracing_extended");
+        noForceSyncModules.add("googlemock");
+        noForceSyncModules.add("googletest");
+        noForceSyncModules.add("local_curl");
+        noForceSyncModules.add("protobuf_archive");
+        noForceSyncModules.add("rainbow_sdk");
+        noForceSyncModules.add("tconf_api");
+        noForceSyncModules.add("TegMonitorApi");
+        noForceSyncModules.add("tjg_report_api");
+        noForceSyncModules.add("tjgtracer");
         return noForceSyncModules;
     }
 

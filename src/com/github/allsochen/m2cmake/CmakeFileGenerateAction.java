@@ -17,7 +17,7 @@ public class CmakeFileGenerateAction extends AnAction {
         TafMakefileAnalyser analysis = new TafMakefileAnalyser();
         TafMakefileProperty tafMakefileProperty = analysis.analysis(basePath);
 
-        BazelWorkspace bazelWorkspace = BazelWorkspaceAnalyser.analysis(basePath);
+        BazelWorkspace bazelWorkspace = BazelWorkspaceAnalyser.analysis(basePath, project.getName());
 
         String app = ProjectUtil.chooseApp(tafMakefileProperty.getApp());
         String target = ProjectUtil.chooseTarget(project.getName(), tafMakefileProperty.getTargets(),

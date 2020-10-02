@@ -59,9 +59,9 @@ public class FileSynchronizeWorker {
     }
 
     public FileSynchronizeWorker(JsonConfig jsonConfig, TafMakefileProperty tafMakefileProperty,
-                                 BazelWorkspace bazelWorkspace,
-                                 String app, String target,
-                                 Project project) {
+            BazelWorkspace bazelWorkspace,
+            String app, String target,
+            Project project) {
         this.jsonConfig = jsonConfig;
         this.tafMakefileProperty = tafMakefileProperty;
         this.bazelWorkspace = bazelWorkspace;
@@ -147,7 +147,7 @@ public class FileSynchronizeWorker {
     }
 
     private void scanAndCopyFiles(File source, File destination,
-                                  ProgressIndicator progressIndicator) {
+            ProgressIndicator progressIndicator) {
         try {
             progressIndicator.checkCanceled();
         } catch (ProcessCanceledException e) {
@@ -296,7 +296,7 @@ public class FileSynchronizeWorker {
             List<String> paths = WebServersParser.parse(project.getBasePath());
             for (String path : paths) {
                 consoleWindow.println("find 'tafjcedepend' directory in: " + path,
-                    ConsoleViewContentType.LOG_DEBUG_OUTPUT);
+                        ConsoleViewContentType.LOG_DEBUG_OUTPUT);
                 Stream<Path> walk = Files.walk(Paths.get(path));
                 List<Path> pathList = walk.filter(path1 -> path1.getFileName().endsWith(Constants.TAFJCE_DEPEND))
                         .collect(Collectors.toList());
@@ -320,7 +320,7 @@ public class FileSynchronizeWorker {
         }
     }
 
-    private void moveBazelBinToFront(List<File> files) {
+    private void moveBazelBinFileToFront(List<File> files) {
         for (int i = 0; i < files.size(); i++) {
             File file = files.get(i);
             if (file.getName().equals(Constants.BAZEL_BIN) && i != 0) {
@@ -333,7 +333,15 @@ public class FileSynchronizeWorker {
     private boolean isBazelProjectDirectory(File file) {
         String targetName = "bazel-" + bazelWorkspace.getTarget();
         targetName = targetName.toLowerCase();
-        return file.getName().toLowerCase().equals(targetName);
+        if (file.getName().toLowerCase().equals(targetName)) {
+            return true;
+        }
+        targetName = "bazel-" + project.getName();
+        targetName = targetName.toLowerCase();
+        if (file.getName().toLowerCase().equals(targetName)) {
+            return true;
+        }
+        return false;
     }
 
     private boolean isUnderBazelProjectDirectory(File file) {
@@ -344,69 +352,74 @@ public class FileSynchronizeWorker {
         return file.getAbsolutePath().toLowerCase().endsWith(name);
     }
 
-    private void trySyncBazelDependenceDirectory(ProgressIndicator progressIndicator) {
-        try {
-            List<String> syncPaths = WebServersParser.parse(project.getBasePath());
-            for (String syncPath : syncPaths) {
-                consoleWindow.println("sync remote path: " + syncPath,
-                        ConsoleViewContentType.LOG_DEBUG_OUTPUT);
-                File rootFile = new File(syncPath);
-                if (!rootFile.exists() || !rootFile.isDirectory()) {
-                    consoleWindow.println("WARMING: remote synchronize path is empty. " +
-                                    rootFile.getAbsolutePath(),
-                            ConsoleViewContentType.ERROR_OUTPUT);
-                    continue;
-                }
-                List<File> targetFiles = new LinkedList<>();
-                File[] files = rootFile.listFiles();
-                if (files == null) {
-                    continue;
-                }
-                for (File file : files) {
-                    String fileName = file.getName();
-                    File[] subFiles = file.listFiles();
-                    if (fileName.equals(Constants.BAZEL_BIN)) {
-                        targetFiles.add(file);
-                    } else {
-                        // Add bazel-workspaceName/external directory.
-                        if (isBazelProjectDirectory(file) && subFiles != null) {
-                            for (File subFile : subFiles) {
-                                if (subFile.isDirectory() && subFile.getName().equals("external")) {
-                                    targetFiles.add(subFile);
-                                }
+    public List<File> getBazelSyncDirectory() {
+        List<File> targetFiles = new LinkedList<>();
+        List<String> syncPaths = WebServersParser.parse(project.getBasePath());
+        for (String syncPath : syncPaths) {
+            consoleWindow.println("sync remote path: " + syncPath,
+                    ConsoleViewContentType.LOG_DEBUG_OUTPUT);
+            File rootFile = new File(syncPath);
+            if (!rootFile.exists() || !rootFile.isDirectory()) {
+                consoleWindow.println("WARMING: remote synchronize path is empty. " +
+                                rootFile.getAbsolutePath(),
+                        ConsoleViewContentType.ERROR_OUTPUT);
+                continue;
+            }
+            File[] files = rootFile.listFiles();
+            if (files == null) {
+                continue;
+            }
+            for (File file : files) {
+                String fileName = file.getName();
+                File[] subFiles = file.listFiles();
+                if (fileName.equals(Constants.BAZEL_BIN)) {
+                    targetFiles.add(file);
+                } else {
+                    // Add bazel-workspaceName/external directory.
+                    if (isBazelProjectDirectory(file) && subFiles != null) {
+                        for (File subFile : subFiles) {
+                            if (subFile.isDirectory() && subFile.getName().equals("external")) {
+                                targetFiles.add(subFile);
                             }
                         }
                     }
                 }
-                // Synchronized bazel-bin directory first.
-                moveBazelBinToFront(targetFiles);
+            }
+            // Synchronized bazel-bin directory first.
+            moveBazelBinFileToFront(targetFiles);
 
-                if (targetFiles.isEmpty()) {
-                    consoleWindow.println("WARMING: Not found bazel-genfiles or bazel-" +
-                                    bazelWorkspace.getTarget() + " directory. " +
-                                    "Please execute `bazel build ...` command on remote server " +
-                                    "before synchronize dependence.",
-                            ConsoleViewContentType.ERROR_OUTPUT);
+            if (targetFiles.isEmpty()) {
+                consoleWindow.println("WARMING: Not found bazel-genfiles or bazel-" +
+                                bazelWorkspace.getTarget() + " directory. " +
+                                "Please execute `bazel build ...` command on remote server " +
+                                "before synchronize dependence.",
+                        ConsoleViewContentType.ERROR_OUTPUT);
+            }
+        }
+        return targetFiles;
+    }
+
+    private void trySyncBazelDependenceDirectory(ProgressIndicator progressIndicator) {
+        try {
+            List<File> targetFiles = getBazelSyncDirectory();
+            for (int i = 0; i < targetFiles.size(); i++) {
+                File sourceDir = targetFiles.get(i);
+                int index = i + 1;
+                // jce gen files
+                File destDir;
+                if (sourceDir.getName().equals(Constants.BAZEL_BIN)) {
+                    destDir = new File(ProjectUtil.getBazelBinFilesPath(jsonConfig));
+                } else {
+                    destDir = new File(ProjectUtil.getBazelRepositoryExternalFilesPath(jsonConfig));
                 }
-                for (int i = 0; i < targetFiles.size(); i++) {
-                    File sourceDir = targetFiles.get(i);
-                    int index = i + 1;
-                    // jce gen files
-                    File destDir;
-                    if (sourceDir.getName().equals(Constants.BAZEL_BIN)) {
-                        destDir = new File(ProjectUtil.getBazelBinFilesPath(jsonConfig));
-                    } else {
-                        destDir = new File(ProjectUtil.getBazelRepositoryExternalFilesPath(jsonConfig));
-                    }
-                    consoleWindow.println("Try async. source directory: " + sourceDir.getAbsolutePath() +
-                                    " dest directory: " + destDir.getAbsolutePath(),
-                            ConsoleViewContentType.LOG_DEBUG_OUTPUT);
-                    CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
-                        scanAndCopyFiles(sourceDir, destDir, progressIndicator);
-                        return true;
-                    }, executor);
-                    scanFutures.add(future);
-                }
+                consoleWindow.println("Try async. source directory: " + sourceDir.getAbsolutePath() +
+                                " dest directory: " + destDir.getAbsolutePath(),
+                        ConsoleViewContentType.LOG_DEBUG_OUTPUT);
+                CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
+                    scanAndCopyFiles(sourceDir, destDir, progressIndicator);
+                    return true;
+                }, executor);
+                scanFutures.add(future);
             }
         } catch (Exception e) {
             e.printStackTrace();

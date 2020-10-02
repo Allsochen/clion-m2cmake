@@ -9,7 +9,7 @@ import java.util.List;
 
 public class BazelWorkspaceAnalyser {
 
-    public static BazelWorkspace analysis(String basePath) {
+    public static BazelWorkspace analysis(String basePath, String projectName) {
         BazelWorkspace mergedBazelWorkspace = new BazelWorkspace();
         File folder = new File(basePath);
 
@@ -22,6 +22,17 @@ public class BazelWorkspaceAnalyser {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+        }
+        boolean foundWorkspace = false;
+        for (BazelFunctional bazelFunctional : mergedBazelWorkspace.getFunctionals()) {
+            if (bazelFunctional.getType() == BazelFunctionalType.WORKSPACE) {
+                foundWorkspace = true;
+                break;
+            }
+        }
+        // Add default workspace.
+        if (!foundWorkspace) {
+            mergedBazelWorkspace.add(new BazelFunctional(BazelFunctionalType.WORKSPACE, projectName));
         }
         return mergedBazelWorkspace;
     }

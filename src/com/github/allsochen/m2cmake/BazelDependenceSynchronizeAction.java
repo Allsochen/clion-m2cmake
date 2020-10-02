@@ -20,7 +20,7 @@ public class BazelDependenceSynchronizeAction extends AnAction {
         Project project = event.getProject();
         String basePath = project.getBasePath();
 
-        BazelWorkspace bazelWorkspace = BazelWorkspaceAnalyser.analysis(basePath);
+        BazelWorkspace bazelWorkspace = BazelWorkspaceAnalyser.analysis(basePath, project.getName());
 
         String app = ProjectUtil.chooseApp(null);
         String target = ProjectUtil.chooseTarget(project.getName(), null,

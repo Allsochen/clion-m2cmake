@@ -51,7 +51,7 @@ public class BazelWorkspace {
     }
 
     public boolean isValid() {
-        return !functionals.isEmpty() && !getTarget().isEmpty();
+        return !functionals.isEmpty() || !getTarget().isEmpty();
     }
 
     public void merge(BazelWorkspace bazelWorkspace) {
