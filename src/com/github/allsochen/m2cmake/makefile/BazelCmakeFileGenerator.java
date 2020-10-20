@@ -65,10 +65,10 @@ public class BazelCmakeFileGenerator {
 
             bw.write("project(" + target + ")");
             bw.newLine();
-            bw.write("set(CMAKE_CXX_STANDARD 11)");
+            bw.write("set(CMAKE_CXX_STANDARD 17)");
             bw.newLine();
 
-            String cxxFlags = "-std=c++11 -Wno-narrowing -fno-strict-aliasing -Wno-deprecated-declarations -fPIC -Wno-deprecated -Wall";
+            String cxxFlags = "-std=c++17 -Wno-narrowing -fno-strict-aliasing -Wno-deprecated-declarations -fPIC -Wno-deprecated -Wall";
             bw.write("set(CMAKE_CXX_FLAGS \"" + cxxFlags + "\")");
             bw.newLine();
 
@@ -103,24 +103,36 @@ public class BazelCmakeFileGenerator {
             bw.write("include_directories(" + transferPathSeperator(itself.getAbsolutePath()) + ")");
             bw.newLine();
 
-            List<File> childrenDirectory = getSyncSubDirectory();
+            List<File> syncChildrenDirectories = getSyncSubDirectory();
 
             File bazelBinExternalFile = ProjectUtil.getBazelBinExternalFile(jsonConfig);
             File[] bazelBinFileExternals = bazelBinExternalFile.listFiles();
             if (bazelBinFileExternals != null) {
                 Set<String> includes = new TreeSet<>();
                 for (File file : bazelBinFileExternals) {
-                    consoleWindow.println("bazelBinFileExternals name: " + file.getName(),
+                    consoleWindow.println("bazelBinFileExternals directory: " + file.getAbsolutePath(),
                             ConsoleViewContentType.NORMAL_OUTPUT);
                     if (file.isDirectory() && bazelDependenceNames.contains(file.getName())) {
                         includes.add(transferPathSeperator(file.getAbsolutePath()));
+
+                        // try to add include/src directory.
+                        File[] subFiles = file.listFiles();
+                        if (subFiles != null) {
+                            for (File subFile : subFiles) {
+                                if (subFile.isDirectory() && isIncludeOrSrc(subFile)) {
+                                    includes.add(transferPathSeperator(subFile.getAbsolutePath()));
+                                }
+                            }
+                        }
                     }
                 }
-                // Add remote real dependence path.
-                for (File file : childrenDirectory) {
+                // Add local real dependence path.
+                for (File file : syncChildrenDirectories) {
                     if (file.isDirectory()) {
                         // bazel-bin/name
                         String dependence = bazelBinExternalFile.getAbsolutePath() + File.separator + file.getName();
+                        consoleWindow.println("SyncSubDirectory directory: " + file.getAbsolutePath(),
+                                ConsoleViewContentType.NORMAL_OUTPUT);
                         includes.add(transferPathSeperator(dependence));
                     }
                 }
@@ -161,7 +173,7 @@ public class BazelCmakeFileGenerator {
                     }
                 }
                 // Add remote real dependence path.
-                for (File file : childrenDirectory) {
+                for (File file : syncChildrenDirectories) {
                     if (file.isDirectory()) {
                         // bazel-bin/name
                         String dependence = bazelBinExternalFile.getAbsolutePath() + File.separator + file.getName();

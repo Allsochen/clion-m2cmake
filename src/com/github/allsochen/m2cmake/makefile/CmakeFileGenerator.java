@@ -72,10 +72,10 @@ public class CmakeFileGenerator {
 
             bw.write("project(" + target + ")");
             bw.newLine();
-            bw.write("set(CMAKE_CXX_STANDARD 11)");
+            bw.write("set(CMAKE_CXX_STANDARD 17)");
             bw.newLine();
 
-            String cxxFlags = "-std=c++11 -Wno-narrowing -fno-strict-aliasing -Wno-deprecated-declarations -fPIC -Wno-deprecated -Wall";
+            String cxxFlags = "-std=c++17 -Wno-narrowing -fno-strict-aliasing -Wno-deprecated-declarations -fPIC -Wno-deprecated -Wall";
             bw.write("set(CMAKE_CXX_FLAGS \"" + cxxFlags + "\")");
             bw.newLine();
 
@@ -131,7 +131,7 @@ public class CmakeFileGenerator {
             }
             bw.newLine();
 
-            bw.write("file(GLOB_RECURSE CMAKE_FILES *.cpp *.h)");
+            bw.write("file(GLOB_RECURSE CMAKE_FILES *.c *.cc *.cpp *.h)");
             bw.newLine();
             bw.write("add_executable(" + target + " ${CMAKE_FILES})");
             bw.newLine();

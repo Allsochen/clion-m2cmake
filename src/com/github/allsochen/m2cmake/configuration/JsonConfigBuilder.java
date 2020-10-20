@@ -72,6 +72,11 @@ public class JsonConfigBuilder {
         noForceSyncModules.add("TegMonitorApi");
         noForceSyncModules.add("tjg_report_api");
         noForceSyncModules.add("tjgtracer");
+        noForceSyncModules.add("polaris_api");
+        noForceSyncModules.add("PcgMonitorApi");
+        noForceSyncModules.add("spdlog");
+        noForceSyncModules.add("fmtlib");
+        noForceSyncModules.add("segv_api");
         return noForceSyncModules;
     }
 
