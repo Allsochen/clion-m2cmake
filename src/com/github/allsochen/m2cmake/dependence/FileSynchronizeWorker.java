@@ -111,6 +111,7 @@ public class FileSynchronizeWorker {
                 suffix.equals("bzl") ||
                 suffix.equals("md") ||
                 suffix.equals("inc") ||
+                suffix.equals("proto") ||
                 suffix.equals("yml")) {
             return true;
         } else {
