@@ -115,13 +115,12 @@ public class BazelCmakeFileGenerator {
                     if (file.isDirectory() && bazelDependenceNames.contains(file.getName())) {
                         includes.add(transferPathSeperator(file.getAbsolutePath()));
 
-                        // try to add include/src directory.
-                        File[] subFiles = file.listFiles();
-                        if (subFiles != null) {
-                            for (File subFile : subFiles) {
-                                if (subFile.isDirectory() && isIncludeOrSrc(subFile)) {
-                                    includes.add(transferPathSeperator(subFile.getAbsolutePath()));
-                                }
+                        // Walk through the sub directory. try to add include/src directory.
+                        List<File> subDirectories = new ArrayList<>();
+                        walk(file, subDirectories);
+                        for (File subDirectory : subDirectories) {
+                            if (subDirectory.isDirectory() && isIncludeOrSrc(subDirectory)) {
+                                includes.add(transferPathSeperator(subDirectory.getAbsolutePath()));
                             }
                         }
                     }
@@ -162,13 +161,12 @@ public class BazelCmakeFileGenerator {
                     if (file.isDirectory() && bazelDependenceNames.contains(file.getName())) {
                         includes.add(transferPathSeperator(file.getAbsolutePath()));
                     }
-                    // try to add include/src directory.
-                    File[] subFiles = file.listFiles();
-                    if (subFiles != null) {
-                        for (File subFile : subFiles) {
-                            if (subFile.isDirectory() && isIncludeOrSrc(subFile)) {
-                                includes.add(transferPathSeperator(subFile.getAbsolutePath()));
-                            }
+                    // Walk through the sub directory. try to add include/src directory.
+                    List<File> subDirectories = new ArrayList<>();
+                    walk(file, subDirectories);
+                    for (File subDirectory : subDirectories) {
+                        if (subDirectory.isDirectory() && isIncludeOrSrc(subDirectory)) {
+                            includes.add(transferPathSeperator(subDirectory.getAbsolutePath()));
                         }
                     }
                 }
@@ -206,6 +204,19 @@ public class BazelCmakeFileGenerator {
         }
     }
 
+    private static void walk(File file, List<File> includeOrSrcDir) {
+        if (file.isDirectory()) {
+            includeOrSrcDir.add(file);
+            File[] files = file.listFiles();
+            if (files == null) {
+                return;
+            }
+            for (File newFile : files) {
+                walk(newFile, includeOrSrcDir);
+            }
+        }
+    }
+
     private List<File> getSyncSubDirectory() {
         List<File> children = new ArrayList<>();
         for (File file : fsw.getBazelSyncDirectory()) {
@@ -216,13 +227,35 @@ public class BazelCmakeFileGenerator {
         return children;
     }
 
-    private boolean isIncludeOrSrc(File file) {
-        String fileName = file.getName();
-        if (fileName.equals("include") ||
-                fileName.equals("src")) {
-            return true;
+    private boolean excludeIncludeOrSrc(File file) {
+        // exclude the directory.
+        List<String> excludes = new ArrayList<>();
+        excludes.add("test");
+        excludes.add("third_party");
+        excludes.add("third-party");
+        excludes.add("3rd");
+        excludes.add("local");
+        excludes.add("java");
+        excludes.add("go");
+        excludes.add("php");
+        excludes.add("ruby");
+        excludes.add("python");
+        excludes.add("csharp");
+
+        for (String exclude : excludes) {
+            if (file.getAbsolutePath().contains(File.separator + exclude + File.separator)) {
+                return true;
+            }
         }
         return false;
+    }
+
+    private boolean isIncludeOrSrc(File file) {
+        if (excludeIncludeOrSrc(file)) {
+            return false;
+        }
+        String fileName = file.getName();
+        return fileName.equals("include") || fileName.equals("src");
     }
 
     public void open(Project project) {
