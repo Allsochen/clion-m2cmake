@@ -116,8 +116,7 @@ public class FileSynchronizeWorker {
             return true;
         } else {
             String name = fileName.toUpperCase();
-            if (name.equals("WORKSPACE") ||
-                    name.equals("BUILD")) {
+            if (name.contains("WORKSPACE") || name.contains("BUILD")) {
                 return true;
             }
         }
@@ -161,7 +160,7 @@ public class FileSynchronizeWorker {
         }
         if (isIgnore(source)) {
             consoleWindow.println("IGNORE\t" + source.getPath(),
-                    ConsoleViewContentType.LOG_DEBUG_OUTPUT);
+                    ConsoleViewContentType.NORMAL_OUTPUT);
             return;
         }
 
@@ -171,7 +170,7 @@ public class FileSynchronizeWorker {
         if (bazelWorkspace != null && bazelWorkspace.isValid() &&
                 source.getParentFile().getName().equals(Constants.BAZEL_BIN) && source.isFile()) {
             File bazelBinExternalWorkspaceDir = ProjectUtil
-                    .getBazelBinExternalWorkspaceFile(jsonConfig, bazelWorkspace.getTarget());
+                    .getLocalBazelBinExternalWorkspaceFile(jsonConfig, bazelWorkspace.getTarget());
             if (!bazelBinExternalWorkspaceDir.exists()) {
                 bazelBinExternalWorkspaceDir.mkdirs();
             }
@@ -197,7 +196,7 @@ public class FileSynchronizeWorker {
             if (!destination.exists()) {
                 destination.mkdirs();
                 consoleWindow.println("CREATE\t" + destination.getPath(),
-                        ConsoleViewContentType.LOG_DEBUG_OUTPUT);
+                        ConsoleViewContentType.NORMAL_OUTPUT);
             }
             String[] files = source.list();
             if (files == null) {
@@ -228,7 +227,7 @@ public class FileSynchronizeWorker {
                         lastTaskIndex.intValue() + "/" + totalTask.intValue() + ")");
                 progressIndicator.setText2(message.toString());
                 if (operator.equals("IGNORE")) {
-                    consoleWindow.println(message2.toString(), ConsoleViewContentType.LOG_WARNING_OUTPUT);
+                    consoleWindow.println(message2.toString(), ConsoleViewContentType.NORMAL_OUTPUT);
                 } else {
                     consoleWindow.println(message2.toString(), ConsoleViewContentType.NORMAL_OUTPUT);
                 }
@@ -287,7 +286,7 @@ public class FileSynchronizeWorker {
             progressIndicator.setText("TAF dependence synchronize...(" +
                     index + "/" + totalTask.intValue() + ")");
             progressIndicator.setText2(message.toString());
-            consoleWindow.println(message2.toString(), ConsoleViewContentType.LOG_DEBUG_OUTPUT);
+            consoleWindow.println(message2.toString(), ConsoleViewContentType.NORMAL_OUTPUT);
             return true;
         });
         copyFutures.add(future);
@@ -298,18 +297,18 @@ public class FileSynchronizeWorker {
             List<String> paths = WebServersParser.parse(project.getBasePath());
             for (String path : paths) {
                 consoleWindow.println("find 'tafjcedepend' directory in: " + path,
-                        ConsoleViewContentType.LOG_DEBUG_OUTPUT);
+                        ConsoleViewContentType.NORMAL_OUTPUT);
                 Stream<Path> walk = Files.walk(Paths.get(path));
                 List<Path> pathList = walk.filter(path1 -> path1.getFileName().endsWith(Constants.TAFJCE_DEPEND))
                         .collect(Collectors.toList());
                 for (Path tafJceDependencePath : pathList) {
                     File sourceDir = tafJceDependencePath.toFile();
-                    File destDir = new File(ProjectUtil.getTafjceDependenceDir(jsonConfig, target));
+                    File destDir = new File(ProjectUtil.getLocalTafjceDependenceDir(jsonConfig, target));
                     consoleWindow.println("Try async. source directory: " +
                                     sourceDir.getAbsolutePath() +
                                     " dest directory: " +
                                     destDir.getAbsolutePath(),
-                            ConsoleViewContentType.LOG_DEBUG_OUTPUT);
+                            ConsoleViewContentType.NORMAL_OUTPUT);
                     CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
                         scanAndCopyFiles(sourceDir, destDir, progressIndicator);
                         return true;
@@ -354,12 +353,20 @@ public class FileSynchronizeWorker {
         return file.getAbsolutePath().toLowerCase().endsWith(name);
     }
 
-    public List<File> getBazelSyncDirectory() {
+    /**
+     * Get remote bazel synchronized directory. directory as followed:
+     *
+     * ${project}/bazel-bin
+     * ${project}/bazel-PROJECT/external
+     *
+     * @return
+     */
+    public List<File> getRemoteBazelSyncDirectory() {
         List<File> targetFiles = new LinkedList<>();
         List<String> syncPaths = WebServersParser.parse(project.getBasePath());
         for (String syncPath : syncPaths) {
             consoleWindow.println("sync remote path: " + syncPath,
-                    ConsoleViewContentType.LOG_DEBUG_OUTPUT);
+                    ConsoleViewContentType.NORMAL_OUTPUT);
             File rootFile = new File(syncPath);
             if (!rootFile.exists() || !rootFile.isDirectory()) {
                 consoleWindow.println("WARMING: remote synchronize path is empty. " +
@@ -380,7 +387,7 @@ public class FileSynchronizeWorker {
                     // Add bazel-workspaceName/external directory.
                     if (isBazelProjectDirectory(file) && subFiles != null) {
                         for (File subFile : subFiles) {
-                            if (subFile.isDirectory() && subFile.getName().equals("external")) {
+                            if (subFile.isDirectory() && "external".equals(subFile.getName())) {
                                 targetFiles.add(subFile);
                             }
                         }
@@ -403,20 +410,20 @@ public class FileSynchronizeWorker {
 
     private void trySyncBazelDependenceDirectory(ProgressIndicator progressIndicator) {
         try {
-            List<File> targetFiles = getBazelSyncDirectory();
+            List<File> targetFiles = getRemoteBazelSyncDirectory();
             for (int i = 0; i < targetFiles.size(); i++) {
                 File sourceDir = targetFiles.get(i);
                 int index = i + 1;
                 // jce gen files
                 File destDir;
                 if (sourceDir.getName().equals(Constants.BAZEL_BIN)) {
-                    destDir = new File(ProjectUtil.getBazelBinFilesPath(jsonConfig));
+                    destDir = new File(ProjectUtil.getLocalBazelBinFilesPath(jsonConfig));
                 } else {
-                    destDir = new File(ProjectUtil.getBazelRepositoryExternalFilesPath(jsonConfig));
+                    destDir = new File(ProjectUtil.getLocalBazelRepositoryExternalFilesPath(jsonConfig));
                 }
                 consoleWindow.println("Try async. source directory: " + sourceDir.getAbsolutePath() +
                                 " dest directory: " + destDir.getAbsolutePath(),
-                        ConsoleViewContentType.LOG_DEBUG_OUTPUT);
+                        ConsoleViewContentType.NORMAL_OUTPUT);
                 CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
                     scanAndCopyFiles(sourceDir, destDir, progressIndicator);
                     return true;

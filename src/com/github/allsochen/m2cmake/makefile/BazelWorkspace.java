@@ -14,7 +14,7 @@ enum BazelFunctionalType {
 
 public class BazelWorkspace {
 
-    private List<BazelFunctional> functionals;
+    private final List<BazelFunctional> functionals;
 
     BazelWorkspace() {
         this.functionals = new ArrayList<>();
@@ -39,6 +39,21 @@ public class BazelWorkspace {
         return dependencies;
     }
 
+    /**
+     * Return all the dependence name from git_repository/http_archive from WORKSPACE.
+     *
+     * Example:
+     *
+     * git_repository(
+     *     name = "protobuf",
+     *     remote = "http://xxx/xxx.git",
+     *     tag = "v0.9.0"
+     * )
+     *
+     * the name is |protobuf|
+     *
+     * @return
+     */
     public List<String> getDependenceName() {
         List<String> dependencies = new ArrayList<>();
         for (BazelFunctional bazelFunctional : functionals) {

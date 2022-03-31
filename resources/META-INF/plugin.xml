@@ -1,11 +1,11 @@
 <idea-plugin>
     <id>com.github.allsochen.m2cmake.plugin.m2cmake</id>
-    <name>TAF m2cmake</name>
+    <name>TAF/tRPC m2cmake</name>
     <version>1.0</version>
     <vendor email="gdcex@qq.com" url="http://www.github.com/allsochen/clion-m2cmake">Allsochen</vendor>
 
     <description><![CDATA[
-      A tool that provides the ability to convert TAF makefile into CMakeFiles.txt.<br>
+      A tool that provides the ability to convert TAF/tRPC makefile into CMakeFiles.txt.<br>
     ]]></description>
 
     <change-notes><![CDATA[
@@ -20,7 +20,7 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <applicationConfigurable instance="com.github.allsochen.m2cmake.configuration.Configuration"
-                                 displayName="TAF m2cmake plugin"/>
+                                 displayName="TAF/tRPC m2cmake plugin"/>
     </extensions>
 
     <actions>
@@ -33,7 +33,7 @@
             </action>
             <action id="m2cmake.CmakeFileGenerateAction"
                     class="com.github.allsochen.m2cmake.CmakeFileGenerateAction"
-                    text="Transfer TAF Makefile To CMakeList..." keymap="Alt K,Alt G">
+                    text="Transfer TAF Makefile To CMakeList...">
                 <keyboard-shortcut first-keystroke="alt K" second-keystroke="alt G" keymap="$default"/>
             </action>
             <action id="m2cmake.BazelDependenceSynchronizeAction"
@@ -43,7 +43,7 @@
             </action>
             <action id="m2cmake.BazelCmakeFileGenerateAction"
                     class="com.github.allsochen.m2cmake.BazelCmakeFileGenerateAction"
-                    text="Transfer Bazel To CMakeList..." keymap="Alt K,Alt B">
+                    text="Transfer Bazel To CMakeList...">
                 <keyboard-shortcut first-keystroke="alt K" second-keystroke="alt B" keymap="$default"/>
             </action>
         </group>

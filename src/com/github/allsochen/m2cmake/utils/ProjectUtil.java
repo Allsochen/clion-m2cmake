@@ -59,41 +59,57 @@ public class ProjectUtil {
             jsonConfig = JsonConfigBuilder.getInstance().deserialize(json);
         } catch (Exception e) {
             Messages.showInfoMessage(project,
-                    "please check json configuration, Settings->TAF m2cmake configuration",
+                    "please check json configuration, Settings->TAF/tRPC m2cmake configuration",
                     "m2cmake configuration error");
         }
         return jsonConfig;
     }
 
-    public static String getTafjceDependenceDir(JsonConfig jsonConfig, String target) {
+    public static String getLocalTafjceDependenceDir(JsonConfig jsonConfig, String target) {
         return jsonConfig.getTafjceLocalDir() + File.separator + Constants.TAFJCE_DEPEND;
     }
 
-    public static String getBazelBinFilesPath(JsonConfig jsonConfig) {
+    /**
+     * LocalRootDir/bazel-bin
+     * @param jsonConfig
+     * @return
+     */
+    public static String getLocalBazelBinFilesPath(JsonConfig jsonConfig) {
         return jsonConfig.getTafjceLocalDir() + File.separator + Constants.BAZEL_BIN;
     }
 
-    public static String getBazelRepositoryFilesPath(JsonConfig jsonConfig) {
+    /**
+     * ${LocalRootDir}/bazel-repository
+     * @param jsonConfig
+     * @return
+     */
+    public static String getLocalBazelRepositoryFilesPath(JsonConfig jsonConfig) {
         return jsonConfig.getTafjceLocalDir() + File.separator + Constants.BAZEL_REPOSITORY;
     }
 
-    public static String getBazelRepositoryExternalFilesPath(JsonConfig jsonConfig) {
+    public static String getLocalBazelRepositoryExternalFilesPath(JsonConfig jsonConfig) {
         return jsonConfig.getTafjceLocalDir() +
                 File.separator + Constants.BAZEL_REPOSITORY +
                 File.separator + "external";
     }
 
-    public static File getBazelBinExternalFile(JsonConfig jsonConfig) {
+    public static File getLocalBazelBinExternalFile(JsonConfig jsonConfig) {
         return new File(jsonConfig.getTafjceLocalDir() +
                 File.separator + Constants.BAZEL_BIN +
                 File.separator + "external");
     }
 
-    public static File getBazelRepositoryExternalFile(JsonConfig jsonConfig) {
-        return new File(getBazelRepositoryExternalFilesPath(jsonConfig));
+    public static File getLocalBazelRepositoryExternalFile(JsonConfig jsonConfig) {
+        return new File(getLocalBazelRepositoryExternalFilesPath(jsonConfig));
     }
 
-    public static File getBazelBinExternalWorkspaceFile(JsonConfig jsonConfig, String workspaceName) {
+    /**
+     * ${LocalRootDir}/bazel-bin/external/${project}
+     * @param jsonConfig
+     * @param workspaceName
+     * @return
+     */
+    public static File getLocalBazelBinExternalWorkspaceFile(JsonConfig jsonConfig, String workspaceName) {
         return new File(jsonConfig.getTafjceLocalDir() +
                 File.separator + Constants.BAZEL_BIN +
                 File.separator + "external" +
