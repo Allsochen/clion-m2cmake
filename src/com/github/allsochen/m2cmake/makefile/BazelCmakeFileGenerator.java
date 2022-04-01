@@ -53,7 +53,7 @@ public class BazelCmakeFileGenerator {
      * @param path
      * @return
      */
-    private String transferPathSeparator(String path) {
+    private static String ConvertPathSeparator(String path) {
         return path.replaceAll("\\\\", "/");
     }
 
@@ -86,7 +86,7 @@ public class BazelCmakeFileGenerator {
 
         Set<String> configIncludes = new LinkedHashSet<>(this.jsonConfig.getIncludes());
         for (String include : configIncludes) {
-            bw.write("include_directories(" + include + ")");
+            bw.write("include_directories(" + ConvertPathSeparator(include) + ")");
             bw.newLine();
         }
     }
@@ -114,7 +114,7 @@ public class BazelCmakeFileGenerator {
         List<File> subDirectories = new ArrayList<>();
         walkToFilterIncludeOrSrcDir(root, false, subDirectories);
         for (File subDirectory : subDirectories) {
-            includes.add(transferPathSeparator(subDirectory.getAbsolutePath()));
+            includes.add(ConvertPathSeparator(subDirectory.getAbsolutePath()));
         }
         for (String include : includes) {
             bw.write("include_directories(" + include + ")");
@@ -127,7 +127,7 @@ public class BazelCmakeFileGenerator {
         bw.write("# Bazel bin includes");
         bw.newLine();
         String bazelBinFilesPath = ProjectUtil.getLocalBazelBinFilesPath(jsonConfig);
-        bw.write("include_directories(" + transferPathSeparator(bazelBinFilesPath) + ")");
+        bw.write("include_directories(" + ConvertPathSeparator(bazelBinFilesPath) + ")");
     }
 
     public void writeLocalBazelRepositoryBasePath(BufferedWriter bw) throws IOException {
@@ -135,7 +135,7 @@ public class BazelCmakeFileGenerator {
         bw.write("# Bazel repository includes");
         bw.newLine();
         String localBazelRepositoryDir = ProjectUtil.getLocalBazelRepositoryFilesPath(jsonConfig);
-        bw.write("include_directories(" + transferPathSeparator(localBazelRepositoryDir) + ")");
+        bw.write("include_directories(" + ConvertPathSeparator(localBazelRepositoryDir) + ")");
 
     }
 
@@ -143,7 +143,7 @@ public class BazelCmakeFileGenerator {
         // Add itself dependence gen files.
         bw.newLine();
         File itself = ProjectUtil.getLocalBazelBinExternalWorkspaceFile(jsonConfig, bazelWorkspace.getTarget());
-        bw.write("include_directories(" + transferPathSeparator(itself.getAbsolutePath()) + ")");
+        bw.write("include_directories(" + ConvertPathSeparator(itself.getAbsolutePath()) + ")");
         bw.newLine();
     }
 
@@ -222,13 +222,13 @@ public class BazelCmakeFileGenerator {
                 consoleWindow.println("externalPath: " + file.getAbsolutePath(),
                         ConsoleViewContentType.NORMAL_OUTPUT);
                 if (file.isDirectory() && bazelWorkspaceDependenceNames.contains(file.getName())) {
-                    includes.add(transferPathSeparator(file.getAbsolutePath()));
+                    includes.add(ConvertPathSeparator(file.getAbsolutePath()));
                 }
                 // Walk through the sub directory. try to add include/src directory.
                 List<File> subDirectories = new ArrayList<>();
                 walkToFilterIncludeOrSrcDir(file, true, subDirectories);
                 for (File subDirectory : subDirectories) {
-                    includes.add(transferPathSeparator(subDirectory.getAbsolutePath()));
+                    includes.add(ConvertPathSeparator(subDirectory.getAbsolutePath()));
                 }
             }
             // 2.Add remote dependence path.
@@ -237,7 +237,7 @@ public class BazelCmakeFileGenerator {
                     // bazel-bin|repository/name
                     String dependence = localBazelBinOrRepositoryFilesExternal.getAbsolutePath() +
                             File.separator + file.getName();
-                    includes.add(transferPathSeparator(dependence));
+                    includes.add(ConvertPathSeparator(dependence));
                 }
             }
             for (String include : includes) {
