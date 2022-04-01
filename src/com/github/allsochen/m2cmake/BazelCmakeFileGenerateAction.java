@@ -15,9 +15,12 @@ import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class BazelCmakeFileGenerateAction extends AnAction {
+
+    private ExecutorService executorService;
 
     @Override
     public void actionPerformed(AnActionEvent event) {
@@ -40,7 +43,10 @@ public class BazelCmakeFileGenerateAction extends AnAction {
                 app, target, project);
         BazelCmakeFileGenerator generator = new BazelCmakeFileGenerator(app, target,
                 basePath, bazelWorkspace, jsonConfig, consoleWindow, fsw);
-        Executors.newSingleThreadExecutor().submit(() -> {
+        if (executorService == null) {
+            executorService = Executors.newSingleThreadExecutor();
+        }
+        executorService.submit(() -> {
             ProgressManager.getInstance().run(new Task.Backgroundable(project,
                     "Transfer bazel to CMakeList...") {
 

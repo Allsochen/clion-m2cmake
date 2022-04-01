@@ -108,15 +108,13 @@ public class BazelCmakeFileGenerator {
         bw.write("include_directories(./)");
         bw.newLine();
 
-        // Add src or sub src directory.
+        // Add src or sub src directory from project.
         File root = new File(this.basePath);
         Set<String> includes = new TreeSet<>();
         List<File> subDirectories = new ArrayList<>();
-        walkToFilterIncludeOrSrcDir(root, subDirectories);
+        walkToFilterIncludeOrSrcDir(root, false, subDirectories);
         for (File subDirectory : subDirectories) {
-            if (subDirectory.isDirectory() && isIncludeOrSrc(subDirectory)) {
-                includes.add(transferPathSeparator(subDirectory.getAbsolutePath()));
-            }
+            includes.add(transferPathSeparator(subDirectory.getAbsolutePath()));
         }
         for (String include : includes) {
             bw.write("include_directories(" + include + ")");
@@ -191,14 +189,14 @@ public class BazelCmakeFileGenerator {
             writeConfigIncludes(bw);
             writeProjectIncludeOrSrcPath(bw);
             writeLocalBazelBinBasePath(bw);
-            List<File> remoteSyncChildrenDirectories = getRemoteSyncSubDirectory();
-            List<String> bazelWorkspaceDependenceNames = getBazelWorkspaceDependenceNames();
+            List<File> remoteSyncSubDirectory = getRemoteSyncSubDirectory();
+            List<String> bazelWorkspaceDependenceModuleNames = getBazelWorkspaceDependenceModuleNames();
 
             writeLocalBazelBinExternalWorkspacePath(bw);
-            writeLocalBazelBinExternalOrSubPath(bw, remoteSyncChildrenDirectories, bazelWorkspaceDependenceNames);
+            writeLocalBazelBinExternalOrSubPath(bw, remoteSyncSubDirectory, bazelWorkspaceDependenceModuleNames);
 
             writeLocalBazelRepositoryBasePath(bw);
-            writeLocalBazelRepositoryExternalOrSubPath(bw, remoteSyncChildrenDirectories, bazelWorkspaceDependenceNames);
+            writeLocalBazelRepositoryExternalOrSubPath(bw, remoteSyncSubDirectory, bazelWorkspaceDependenceModuleNames);
 
             writeExecutable(bw);
             bw.flush();
@@ -228,11 +226,9 @@ public class BazelCmakeFileGenerator {
                 }
                 // Walk through the sub directory. try to add include/src directory.
                 List<File> subDirectories = new ArrayList<>();
-                walkToFilterIncludeOrSrcDir(file, subDirectories);
+                walkToFilterIncludeOrSrcDir(file, true, subDirectories);
                 for (File subDirectory : subDirectories) {
-                    if (subDirectory.isDirectory() && isIncludeOrSrc(subDirectory)) {
-                        includes.add(transferPathSeparator(subDirectory.getAbsolutePath()));
-                    }
+                    includes.add(transferPathSeparator(subDirectory.getAbsolutePath()));
                 }
             }
             // 2.Add remote dependence path.
@@ -255,7 +251,7 @@ public class BazelCmakeFileGenerator {
         }
     }
 
-    private List<String> getBazelWorkspaceDependenceNames() {
+    private List<String> getBazelWorkspaceDependenceModuleNames() {
         // add default functional.
         bazelWorkspace.add(BazelWorkspace.defaultFunctionals());
         List<String> bazelWorkspaceDependenceNames = bazelWorkspace.getDependenceName();
@@ -264,15 +260,19 @@ public class BazelCmakeFileGenerator {
         return bazelWorkspaceDependenceNames;
     }
 
-    private static void walkToFilterIncludeOrSrcDir(File file, List<File> includeOrSrcDir) {
-        if (file.isDirectory()) {
-            includeOrSrcDir.add(file);
-            File[] files = file.listFiles();
-            if (files == null) {
-                return;
-            }
-            for (File newFile : files) {
-                walkToFilterIncludeOrSrcDir(newFile, includeOrSrcDir);
+    private static void walkToFilterIncludeOrSrcDir(File file, boolean exclude, List<File> includeOrSrcDir) {
+        if (file != null && file.isDirectory()) {
+            if (isIncludeOrSrc(file, exclude)) {
+                includeOrSrcDir.add(file);
+            } else {
+                // Walk the sub directory while it is not an include/src directory.
+                File[] files = file.listFiles();
+                if (files == null) {
+                    return;
+                }
+                for (File newFile : files) {
+                    walkToFilterIncludeOrSrcDir(newFile, exclude, includeOrSrcDir);
+                }
             }
         }
     }
@@ -306,7 +306,7 @@ public class BazelCmakeFileGenerator {
         return children;
     }
 
-    private boolean excludeIncludeOrSrc(File file) {
+    private static boolean excludeIncludeOrSrc(File file) {
         // exclude the directory.
         List<String> excludes = new ArrayList<>();
         excludes.add("test");
@@ -329,8 +329,8 @@ public class BazelCmakeFileGenerator {
         return false;
     }
 
-    private boolean isIncludeOrSrc(File file) {
-        if (excludeIncludeOrSrc(file)) {
+    private static boolean isIncludeOrSrc(File file, boolean exclude) {
+        if (exclude && excludeIncludeOrSrc(file)) {
             return false;
         }
         String fileName = file.getName();
