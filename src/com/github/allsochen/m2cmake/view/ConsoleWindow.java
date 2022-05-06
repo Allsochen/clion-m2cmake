@@ -5,7 +5,6 @@ import com.intellij.execution.filters.TextConsoleBuilderFactory;
 import com.intellij.execution.ui.ConsoleView;
 import com.intellij.execution.ui.ConsoleViewContentType;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.wm.RegisterToolWindowTask;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowAnchor;
 import com.intellij.openapi.wm.ToolWindowManager;
@@ -17,33 +16,28 @@ import java.util.Map;
 
 public class ConsoleWindow {
 
-    private ToolWindow window;
+    private final ConsoleView consoleView;
 
-    private ConsoleView consoleView;
-
-    private static Map<String, ConsoleWindow> consoleWindows = new HashMap<>();
+    private static final Map<String, ConsoleWindow> CONSOLE_WINDOWS = new HashMap<>();
 
     private ConsoleWindow(Project project) {
         ToolWindowManager manager = ToolWindowManager.getInstance(project);
-        String title = "TAF Synchronize Console";
+        String title = "TAF/tRPC Synchronize Console";
         TextConsoleBuilder builder = TextConsoleBuilderFactory.getInstance().createBuilder(project);
         consoleView = builder.getConsole();
-        window = manager.getToolWindow(title);
+        ToolWindow window = manager.getToolWindow(title);
         if (window == null) {
-//            manager.registerToolWindow(new RegisterToolWindowTask(title, ToolWindowAnchor.BOTTOM,
-//                    consoleView.getComponent(), true, true, true, true, null, null, null));
             window = manager.registerToolWindow(title, consoleView.getComponent(), ToolWindowAnchor.BOTTOM);
-//            window.setTitle(title);
         }
     }
 
     public static synchronized ConsoleWindow getInstance(Project project) {
-        if (!consoleWindows.containsKey(project.getName())) {
+        if (!CONSOLE_WINDOWS.containsKey(project.getName())) {
             ConsoleWindow consoleWindow = new ConsoleWindow(project);
-            consoleWindows.put(project.getName(), consoleWindow);
+            CONSOLE_WINDOWS.put(project.getName(), consoleWindow);
             return consoleWindow;
         }
-        return consoleWindows.get(project.getName());
+        return CONSOLE_WINDOWS.get(project.getName());
     }
 
     public void println(String message, ConsoleViewContentType consoleViewContentType) {

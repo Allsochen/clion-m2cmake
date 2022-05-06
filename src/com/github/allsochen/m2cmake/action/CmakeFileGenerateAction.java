@@ -1,4 +1,4 @@
-package com.github.allsochen.m2cmake;
+package com.github.allsochen.m2cmake.action;
 
 import com.github.allsochen.m2cmake.configuration.JsonConfig;
 import com.github.allsochen.m2cmake.makefile.*;

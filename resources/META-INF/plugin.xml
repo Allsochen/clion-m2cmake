@@ -27,22 +27,22 @@
         <group id="m2cmake.CmakeFileGenerate" text="CmakeFileGenerate" description="CmakeFileGenerate">
             <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>
             <action id="m2cmake.DependenceSynchronizeAction"
-                    class="com.github.allsochen.m2cmake.TafDependenceSynchronizeAction"
+                    class="com.github.allsochen.m2cmake.action.TafDependenceSynchronizeAction"
                     text="TAF Makefile Dependence Synchronize...">
                 <keyboard-shortcut first-keystroke="alt K" second-keystroke="alt D" keymap="$default"/>
             </action>
             <action id="m2cmake.CmakeFileGenerateAction"
-                    class="com.github.allsochen.m2cmake.CmakeFileGenerateAction"
+                    class="com.github.allsochen.m2cmake.action.CmakeFileGenerateAction"
                     text="Transfer TAF Makefile To CMakeList...">
                 <keyboard-shortcut first-keystroke="alt K" second-keystroke="alt G" keymap="$default"/>
             </action>
             <action id="m2cmake.BazelDependenceSynchronizeAction"
-                    class="com.github.allsochen.m2cmake.BazelDependenceSynchronizeAction"
+                    class="com.github.allsochen.m2cmake.action.BazelDependenceSynchronizeAction"
                     text="Bazel Dependence Synchronize...">
                 <keyboard-shortcut first-keystroke="alt K" second-keystroke="alt A" keymap="$default"/>
             </action>
             <action id="m2cmake.BazelCmakeFileGenerateAction"
-                    class="com.github.allsochen.m2cmake.BazelCmakeFileGenerateAction"
+                    class="com.github.allsochen.m2cmake.action.BazelCmakeFileGenerateAction"
                     text="Transfer Bazel To CMakeList...">
                 <keyboard-shortcut first-keystroke="alt K" second-keystroke="alt B" keymap="$default"/>
             </action>

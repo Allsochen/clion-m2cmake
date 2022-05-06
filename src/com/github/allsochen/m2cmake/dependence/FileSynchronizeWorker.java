@@ -223,10 +223,10 @@ public class FileSynchronizeWorker {
                 message.append(operator).append(" ").append(srcFile.getPath());
                 message2.append(operator).append("\t")
                         .append(srcFile.getPath()).append(" ===> ").append(destination.getPath());
-                progressIndicator.setText("TAF dependence synchronize...(" +
+                progressIndicator.setText("dependence synchronize...(" +
                         lastTaskIndex.intValue() + "/" + totalTask.intValue() + ")");
                 progressIndicator.setText2(message.toString());
-                if (operator.equals("IGNORE")) {
+                if ("IGNORE".equals(operator)) {
                     consoleWindow.println(message2.toString(), ConsoleViewContentType.NORMAL_OUTPUT);
                 } else {
                     consoleWindow.println(message2.toString(), ConsoleViewContentType.NORMAL_OUTPUT);
@@ -283,7 +283,7 @@ public class FileSynchronizeWorker {
             message2.append(operator).append("\t").append(source.getPath())
                     .append(" ===> ").append(destination.getPath());
             int index = lastTaskIndex.incrementAndGet();
-            progressIndicator.setText("TAF dependence synchronize...(" +
+            progressIndicator.setText("dependence synchronize...(" +
                     index + "/" + totalTask.intValue() + ")");
             progressIndicator.setText2(message.toString());
             consoleWindow.println(message2.toString(), ConsoleViewContentType.NORMAL_OUTPUT);
@@ -523,7 +523,7 @@ public class FileSynchronizeWorker {
         CompletableFuture.allOf(copyFutures.toArray(new CompletableFuture[0])).join();
         long cost = (System.currentTimeMillis() - startMs) / 1000;
         consoleWindow.println("", ConsoleViewContentType.NORMAL_OUTPUT);
-        consoleWindow.println("TAF synchronize file finished. Cost " + cost + "s, Ignore file " +
+        consoleWindow.println("synchronize file finished. Cost " + cost + "s, Ignore file " +
                         ignoreFileCount + ", Unmodified file " +
                         unmodifiedFileCount + ", Sync file " + syncFileCount + ".",
                 ConsoleViewContentType.ERROR_OUTPUT);

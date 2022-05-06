@@ -1,9 +1,9 @@
-package com.github.allsochen.m2cmake;
+package com.github.allsochen.m2cmake.action;
 
 import com.github.allsochen.m2cmake.configuration.JsonConfig;
 import com.github.allsochen.m2cmake.dependence.FileSynchronizeWorker;
-import com.github.allsochen.m2cmake.makefile.BazelWorkspace;
-import com.github.allsochen.m2cmake.makefile.BazelWorkspaceAnalyser;
+import com.github.allsochen.m2cmake.makefile.TafMakefileAnalyser;
+import com.github.allsochen.m2cmake.makefile.TafMakefileProperty;
 import com.github.allsochen.m2cmake.utils.ProjectUtil;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -13,18 +13,18 @@ import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
-public class BazelDependenceSynchronizeAction extends AnAction {
+public class TafDependenceSynchronizeAction extends AnAction {
 
     @Override
     public void actionPerformed(AnActionEvent event) {
         Project project = event.getProject();
         String basePath = project.getBasePath();
 
-        BazelWorkspace bazelWorkspace = BazelWorkspaceAnalyser.analysis(basePath, project.getName());
+        TafMakefileAnalyser analysis = new TafMakefileAnalyser();
+        TafMakefileProperty tafMakefileProperty = analysis.analysis(basePath);
 
-        String app = ProjectUtil.chooseApp(null);
-        String target = ProjectUtil.chooseTarget(project.getName(), null,
-                bazelWorkspace.getTarget());
+        String app = ProjectUtil.chooseApp(tafMakefileProperty.getApp());
+        String target = ProjectUtil.chooseTarget(project.getName(), tafMakefileProperty.getTargets(), null);
 
         JsonConfig jsonConfig = ProjectUtil.getJsonConfig(project);
         if (jsonConfig == null) {
@@ -32,11 +32,11 @@ public class BazelDependenceSynchronizeAction extends AnAction {
         }
 
         // Synchronized source dependence to destination.
-        FileSynchronizeWorker fsw = new FileSynchronizeWorker(jsonConfig, null, bazelWorkspace,
+        FileSynchronizeWorker fsw = new FileSynchronizeWorker(jsonConfig, tafMakefileProperty, null,
                 app, target, project);
 
         ProgressManager.getInstance().run(new Task.Backgroundable(project,
-                "TAF Bazel dependence synchronize...") {
+                "TAF dependence recurse synchronize...") {
 
             @Override
             public void run(@NotNull ProgressIndicator progressIndicator) {

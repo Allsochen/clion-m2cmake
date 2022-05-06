@@ -1,4 +1,4 @@
-package com.github.allsochen.m2cmake;
+package com.github.allsochen.m2cmake.action;
 
 import com.github.allsochen.m2cmake.configuration.JsonConfig;
 import com.github.allsochen.m2cmake.dependence.FileSynchronizeWorker;
@@ -20,7 +20,7 @@ import java.util.concurrent.Executors;
 
 public class BazelCmakeFileGenerateAction extends AnAction {
 
-    private ExecutorService executorService;
+    ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     @Override
     public void actionPerformed(AnActionEvent event) {
@@ -43,22 +43,17 @@ public class BazelCmakeFileGenerateAction extends AnAction {
                 app, target, project);
         BazelCmakeFileGenerator generator = new BazelCmakeFileGenerator(app, target,
                 basePath, bazelWorkspace, jsonConfig, consoleWindow, fsw);
-        if (executorService == null) {
-            executorService = Executors.newSingleThreadExecutor();
-        }
-        executorService.submit(() -> {
-            ProgressManager.getInstance().run(new Task.Backgroundable(project,
-                    "Transfer bazel to CMakeList...") {
+        executorService.submit(() -> ProgressManager.getInstance().run(new Task.Backgroundable(project,
+                "Transfer bazel to CMakeList...") {
 
-                @Override
-                public void run(@NotNull ProgressIndicator progressIndicator) {
-                    progressIndicator.setFraction(0);
-                    generator.create();
-                    generator.open(project);
-                    generator.reload();
-                    progressIndicator.setFraction(1.0);
-                }
-            });
-        });
+            @Override
+            public void run(@NotNull ProgressIndicator progressIndicator) {
+                progressIndicator.setFraction(0);
+                generator.create();
+                generator.open(project);
+                generator.reload();
+                progressIndicator.setFraction(1.0);
+            }
+        }));
     }
 }
