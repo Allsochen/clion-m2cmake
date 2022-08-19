@@ -55,7 +55,7 @@ public class FileUtils {
             long pos = 0L;
 
             for(long count = 0L; pos < size; pos += output.transferFrom(input, pos, count)) {
-                count = size - pos > 31457280L ? 31457280L : size - pos;
+                count = Math.min(size - pos, 31457280L);
             }
         } finally {
             IOUtil.close(output);

@@ -4,6 +4,7 @@ import com.github.allsochen.m2cmake.configuration.Configuration;
 import com.github.allsochen.m2cmake.configuration.JsonConfig;
 import com.github.allsochen.m2cmake.configuration.JsonConfigBuilder;
 import com.github.allsochen.m2cmake.configuration.Properties;
+import com.github.allsochen.m2cmake.constants.Constants;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 

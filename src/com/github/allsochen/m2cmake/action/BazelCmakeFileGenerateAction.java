@@ -1,11 +1,12 @@
 package com.github.allsochen.m2cmake.action;
 
 import com.github.allsochen.m2cmake.configuration.JsonConfig;
-import com.github.allsochen.m2cmake.dependence.FileSynchronizeWorker;
-import com.github.allsochen.m2cmake.makefile.BazelCmakeFileGenerator;
+import com.github.allsochen.m2cmake.dependence.SambaFileSynchronizeWorker;
+import com.github.allsochen.m2cmake.generator.BazelToCmakeFileGenerator;
 import com.github.allsochen.m2cmake.makefile.BazelWorkspace;
 import com.github.allsochen.m2cmake.makefile.BazelWorkspaceAnalyser;
 import com.github.allsochen.m2cmake.utils.ProjectUtil;
+import com.github.allsochen.m2cmake.utils.ProjectWrapper;
 import com.github.allsochen.m2cmake.view.ConsoleWindow;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -29,8 +30,10 @@ public class BazelCmakeFileGenerateAction extends AnAction {
 
         BazelWorkspace bazelWorkspace = BazelWorkspaceAnalyser.analysis(basePath, project.getName());
 
-        String app = ProjectUtil.chooseApp(null);
-        String target = ProjectUtil.chooseTarget(project.getName(), null, bazelWorkspace.getTarget());
+        ProjectWrapper projectWrapper = new ProjectWrapper(
+                ProjectUtil.chooseApp(null),
+                ProjectUtil.chooseTarget(project.getName(), null, bazelWorkspace.getTarget()),
+                project);
 
         JsonConfig jsonConfig = ProjectUtil.getJsonConfig(project);
         if (jsonConfig == null) {
@@ -39,10 +42,10 @@ public class BazelCmakeFileGenerateAction extends AnAction {
 
         ConsoleWindow consoleWindow = ConsoleWindow.getInstance(project);
         // Synchronized source dependence to destination.
-        FileSynchronizeWorker fsw = new FileSynchronizeWorker(jsonConfig, null, bazelWorkspace,
-                app, target, project);
-        BazelCmakeFileGenerator generator = new BazelCmakeFileGenerator(app, target,
-                basePath, bazelWorkspace, jsonConfig, consoleWindow, fsw);
+        SambaFileSynchronizeWorker fsw = new SambaFileSynchronizeWorker(jsonConfig, null,
+                bazelWorkspace, projectWrapper);
+        BazelToCmakeFileGenerator generator = new BazelToCmakeFileGenerator(projectWrapper,
+                bazelWorkspace, jsonConfig, consoleWindow, fsw);
         executorService.submit(() -> ProgressManager.getInstance().run(new Task.Backgroundable(project,
                 "Transfer bazel to CMakeList...") {
 
@@ -50,7 +53,7 @@ public class BazelCmakeFileGenerateAction extends AnAction {
             public void run(@NotNull ProgressIndicator progressIndicator) {
                 progressIndicator.setFraction(0);
                 generator.create();
-                generator.open(project);
+                generator.open();
                 generator.reload();
                 progressIndicator.setFraction(1.0);
             }

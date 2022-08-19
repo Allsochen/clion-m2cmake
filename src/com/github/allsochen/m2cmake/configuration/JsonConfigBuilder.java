@@ -1,6 +1,6 @@
 package com.github.allsochen.m2cmake.configuration;
 
-import com.github.allsochen.m2cmake.utils.Constants;
+import com.github.allsochen.m2cmake.constants.Constants;
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

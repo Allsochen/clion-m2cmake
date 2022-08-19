@@ -1,10 +1,11 @@
 package com.github.allsochen.m2cmake.action;
 
 import com.github.allsochen.m2cmake.configuration.JsonConfig;
-import com.github.allsochen.m2cmake.dependence.FileSynchronizeWorker;
+import com.github.allsochen.m2cmake.dependence.SambaFileSynchronizeWorker;
 import com.github.allsochen.m2cmake.makefile.BazelWorkspace;
 import com.github.allsochen.m2cmake.makefile.BazelWorkspaceAnalyser;
 import com.github.allsochen.m2cmake.utils.ProjectUtil;
+import com.github.allsochen.m2cmake.utils.ProjectWrapper;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -22,9 +23,10 @@ public class BazelDependenceSynchronizeAction extends AnAction {
 
         BazelWorkspace bazelWorkspace = BazelWorkspaceAnalyser.analysis(basePath, project.getName());
 
-        String app = ProjectUtil.chooseApp(null);
-        String target = ProjectUtil.chooseTarget(project.getName(), null,
-                bazelWorkspace.getTarget());
+        ProjectWrapper projectWrapper = new ProjectWrapper(
+                ProjectUtil.chooseApp(null),
+                ProjectUtil.chooseTarget(project.getName(), null, bazelWorkspace.getTarget()),
+                project);
 
         JsonConfig jsonConfig = ProjectUtil.getJsonConfig(project);
         if (jsonConfig == null) {
@@ -32,8 +34,8 @@ public class BazelDependenceSynchronizeAction extends AnAction {
         }
 
         // Synchronized source dependence to destination.
-        FileSynchronizeWorker fsw = new FileSynchronizeWorker(jsonConfig, null, bazelWorkspace,
-                app, target, project);
+        SambaFileSynchronizeWorker fsw = new SambaFileSynchronizeWorker(jsonConfig, null, bazelWorkspace,
+                projectWrapper);
 
         ProgressManager.getInstance().run(new Task.Backgroundable(project,
                 "Bazel dependence synchronize...") {

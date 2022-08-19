@@ -1,42 +1,32 @@
-package com.github.allsochen.m2cmake.makefile;
+package com.github.allsochen.m2cmake.generator;
 
-import com.github.allsochen.m2cmake.build.AutomaticReloadCMakeBuilder;
 import com.github.allsochen.m2cmake.configuration.JsonConfig;
-import com.github.allsochen.m2cmake.dependence.FileSynchronizeWorker;
+import com.github.allsochen.m2cmake.dependence.SambaFileSynchronizeWorker;
+import com.github.allsochen.m2cmake.makefile.BazelWorkspace;
 import com.github.allsochen.m2cmake.utils.ProjectUtil;
+import com.github.allsochen.m2cmake.utils.ProjectWrapper;
 import com.github.allsochen.m2cmake.view.ConsoleWindow;
 import com.intellij.execution.ui.ConsoleViewContentType;
-import com.intellij.openapi.fileEditor.FileEditorManager;
-import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.vfs.LocalFileSystem;
-import com.intellij.openapi.vfs.VirtualFile;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-public class BazelCmakeFileGenerator {
-    private String app;
-    private String target;
+public class BazelToCmakeFileGenerator extends AbstractCmakeFileGenerator {
 
-    /**
-     * Project base path.
-     */
-    private String basePath;
     private BazelWorkspace bazelWorkspace;
     private JsonConfig jsonConfig;
     private ConsoleWindow consoleWindow;
-    private FileSynchronizeWorker fsw;
+    private SambaFileSynchronizeWorker fsw;
 
-    public BazelCmakeFileGenerator(String app, String target, String basePath,
-                                   BazelWorkspace bazelWorkspace,
-                                   JsonConfig jsonConfig,
-                                   ConsoleWindow consoleWindow,
-                                   FileSynchronizeWorker fsw) {
-        this.app = app;
-        this.target = target;
-        this.basePath = basePath;
+    public BazelToCmakeFileGenerator(ProjectWrapper projectWrapper,
+                                     BazelWorkspace bazelWorkspace,
+                                     JsonConfig jsonConfig,
+                                     ConsoleWindow consoleWindow,
+                                     SambaFileSynchronizeWorker fsw) {
+        super(projectWrapper);
+        this.projectWrapper = projectWrapper;
         this.bazelWorkspace = bazelWorkspace;
         this.jsonConfig = jsonConfig;
         this.consoleWindow = consoleWindow;
@@ -69,7 +59,7 @@ public class BazelCmakeFileGenerator {
         bw.write("cmake_minimum_required(VERSION " + cmakeVersion + ")");
         bw.newLine();
 
-        bw.write("project(" + target + ")");
+        bw.write("project(" + projectWrapper.getTarget() + ")");
         bw.newLine();
         bw.write("set(CMAKE_CXX_STANDARD 17)");
         bw.newLine();
@@ -109,7 +99,7 @@ public class BazelCmakeFileGenerator {
         bw.newLine();
 
         // Add src or sub src directory from project.
-        File root = new File(this.basePath);
+        File root = new File(Objects.requireNonNull(this.projectWrapper.getProject().getBasePath()));
         Set<String> includes = new TreeSet<>();
         List<File> subDirectories = new ArrayList<>();
         walkToFilterIncludeOrSrcDir(root, false, subDirectories);
@@ -176,13 +166,14 @@ public class BazelCmakeFileGenerator {
         bw.newLine();
         bw.write("file(GLOB_RECURSE CMAKE_FILES *.c *.cc *.cpp *.h)");
         bw.newLine();
-        bw.write("add_executable(" + target + " ${CMAKE_FILES})");
+        bw.write("add_executable(" + projectWrapper.getTarget() + " ${CMAKE_FILES})");
         bw.newLine();
     }
 
     public void create() {
+        Project project = projectWrapper.getProject();
         try {
-            File cmakeFile = getCmakeListFile(this.basePath);
+            File cmakeFile = getCmakeListFile(project.getBasePath());
             BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(
                     new FileOutputStream(cmakeFile), StandardCharsets.UTF_8));
             writeHeader(bw);
@@ -337,39 +328,4 @@ public class BazelCmakeFileGenerator {
         return "include".equals(fileName) || "src".equals(fileName);
     }
 
-    public void open(Project project) {
-        try {
-            VirtualFile[] virtualFiles = FileEditorManager.getInstance(project).getOpenFiles();
-            for (VirtualFile virtualFile : virtualFiles) {
-                if (virtualFile.getName().contains("CMakeLists")) {
-                    virtualFile.refresh(false, false);
-                }
-            }
-            File cmakeFile = BazelCmakeFileGenerator.getCmakeListFile(basePath);
-
-            VirtualFile vf = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(cmakeFile);
-            if (vf != null) {
-                OpenFileDescriptor descriptor = new OpenFileDescriptor(project, vf);
-                FileEditorManager.getInstance(project).openTextEditor(descriptor, true);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void reload() {
-        try {
-            // Set project to auto build.
-            if (jsonConfig.isAutomaticReloadCMake()) {
-                try {
-                    LocalFileSystem.getInstance().refresh(true);
-                    AutomaticReloadCMakeBuilder.build(basePath);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 }

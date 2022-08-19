@@ -1,37 +1,30 @@
-package com.github.allsochen.m2cmake.makefile;
+package com.github.allsochen.m2cmake.generator;
 
-import com.github.allsochen.m2cmake.build.AutomaticReloadCMakeBuilder;
 import com.github.allsochen.m2cmake.configuration.JsonConfig;
+import com.github.allsochen.m2cmake.constants.Constants;
+import com.github.allsochen.m2cmake.makefile.TafMakefileProperty;
 import com.github.allsochen.m2cmake.utils.CollectionUtil;
-import com.github.allsochen.m2cmake.utils.Constants;
 import com.github.allsochen.m2cmake.utils.ProjectUtil;
+import com.github.allsochen.m2cmake.utils.ProjectWrapper;
 import com.github.allsochen.m2cmake.view.ConsoleWindow;
 import com.intellij.execution.ui.ConsoleViewContentType;
-import com.intellij.openapi.fileEditor.FileEditorManager;
-import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.vfs.LocalFileSystem;
-import com.intellij.openapi.vfs.VirtualFile;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-public class CmakeFileGenerator {
-    private String app;
-    private String target;
-    private String basePath;
+public class MakefileToCmakeFileGenerator extends AbstractCmakeFileGenerator {
+
     private TafMakefileProperty tafMakefileProperty;
     private JsonConfig jsonConfig;
     private ConsoleWindow consoleWindow;
 
-    public CmakeFileGenerator(String app, String target, String basePath,
-                              TafMakefileProperty tafMakefileProperty,
-                              JsonConfig jsonConfig,
-                              ConsoleWindow consoleWindow) {
-        this.app = app;
-        this.target = target;
-        this.basePath = basePath;
+    public MakefileToCmakeFileGenerator(ProjectWrapper projectWrapper,
+                                        TafMakefileProperty tafMakefileProperty,
+                                        JsonConfig jsonConfig,
+                                        ConsoleWindow consoleWindow) {
+        super(projectWrapper);
         this.tafMakefileProperty = tafMakefileProperty;
         this.jsonConfig = jsonConfig;
         this.consoleWindow = consoleWindow;
@@ -55,8 +48,11 @@ public class CmakeFileGenerator {
     }
 
     public void create() {
+        Project project = projectWrapper.getProject();
+        String app = projectWrapper.getApp();
+        String target = projectWrapper.getTarget();
         try {
-            File cmakeFile = getCmakeListFile(this.basePath);
+            File cmakeFile = getCmakeListFile(project.getBasePath());
             BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(
                     new FileOutputStream(cmakeFile), StandardCharsets.UTF_8));
             // Write header.
@@ -70,7 +66,7 @@ public class CmakeFileGenerator {
             bw.write("cmake_minimum_required(VERSION " + cmakeVersion + ")");
             bw.newLine();
 
-            bw.write("project(" + target + ")");
+            bw.write("project(" + projectWrapper.getTarget() + ")");
             bw.newLine();
             bw.write("set(CMAKE_CXX_STANDARD 17)");
             bw.newLine();
@@ -146,39 +142,4 @@ public class CmakeFileGenerator {
         }
     }
 
-    public void open(Project project) {
-        try {
-            VirtualFile[] virtualFiles = FileEditorManager.getInstance(project).getOpenFiles();
-            for (VirtualFile virtualFile : virtualFiles) {
-                if (virtualFile.getName().contains("CMakeLists")) {
-                    virtualFile.refresh(false, false);
-                }
-            }
-            File cmakeFile = CmakeFileGenerator.getCmakeListFile(basePath);
-
-            VirtualFile vf = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(cmakeFile);
-            if (vf != null) {
-                OpenFileDescriptor descriptor = new OpenFileDescriptor(project, vf);
-                FileEditorManager.getInstance(project).openTextEditor(descriptor, true);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void reload() {
-        try {
-            // Set project to auto build.
-            if (jsonConfig.isAutomaticReloadCMake()) {
-                try {
-                    LocalFileSystem.getInstance().refresh(true);
-                    AutomaticReloadCMakeBuilder.build(basePath);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 }

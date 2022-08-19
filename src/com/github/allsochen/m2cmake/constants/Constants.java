@@ -1,4 +1,4 @@
-package com.github.allsochen.m2cmake.utils;
+package com.github.allsochen.m2cmake.constants;
 
 public class Constants {
 

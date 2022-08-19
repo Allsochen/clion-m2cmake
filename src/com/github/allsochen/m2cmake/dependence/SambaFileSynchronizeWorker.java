@@ -2,12 +2,13 @@ package com.github.allsochen.m2cmake.dependence;
 
 import com.github.allsochen.m2cmake.configuration.JsonConfig;
 import com.github.allsochen.m2cmake.configuration.JsonConfigBuilder;
+import com.github.allsochen.m2cmake.constants.Constants;
 import com.github.allsochen.m2cmake.makefile.BazelWorkspace;
 import com.github.allsochen.m2cmake.makefile.TafMakefileProperty;
 import com.github.allsochen.m2cmake.utils.CollectionUtil;
-import com.github.allsochen.m2cmake.utils.Constants;
 import com.github.allsochen.m2cmake.utils.FileUtils;
 import com.github.allsochen.m2cmake.utils.ProjectUtil;
+import com.github.allsochen.m2cmake.utils.ProjectWrapper;
 import com.github.allsochen.m2cmake.view.ConsoleWindow;
 import com.intellij.execution.ui.ConsoleViewContentType;
 import com.intellij.openapi.progress.ProcessCanceledException;
@@ -27,14 +28,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class FileSynchronizeWorker {
+public class SambaFileSynchronizeWorker {
 
     private JsonConfig jsonConfig;
     private TafMakefileProperty tafMakefileProperty;
     private BazelWorkspace bazelWorkspace;
-    private String app;
-    private String target;
-    private Project project;
+
+    private ProjectWrapper projectWrapper;
+
     private ConsoleWindow consoleWindow;
 
     private ExecutorService executor;
@@ -58,17 +59,13 @@ public class FileSynchronizeWorker {
         }
     }
 
-    public FileSynchronizeWorker(JsonConfig jsonConfig, TafMakefileProperty tafMakefileProperty,
-            BazelWorkspace bazelWorkspace,
-            String app, String target,
-            Project project) {
+    public SambaFileSynchronizeWorker(JsonConfig jsonConfig, TafMakefileProperty tafMakefileProperty,
+                                      BazelWorkspace bazelWorkspace, ProjectWrapper projectWrapper) {
         this.jsonConfig = jsonConfig;
         this.tafMakefileProperty = tafMakefileProperty;
         this.bazelWorkspace = bazelWorkspace;
-        this.app = app;
-        this.target = target;
-        this.project = project;
-        this.consoleWindow = ConsoleWindow.getInstance(project);
+        this.projectWrapper = projectWrapper;
+        this.consoleWindow = ConsoleWindow.getInstance(projectWrapper.getProject());
         executor = Executors.newFixedThreadPool(5);
     }
 
@@ -101,26 +98,23 @@ public class FileSynchronizeWorker {
 
     private boolean isCopyFileFamily(String fileName) {
         String suffix = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
-        if (suffix.equals("h") ||
-                suffix.equals("cpp") ||
-                suffix.equals("hpp") ||
-                suffix.equals("cc") ||
-                suffix.equals("jce") ||
-                suffix.equals("log") ||
-                suffix.equals("mk") ||
-                suffix.equals("bzl") ||
-                suffix.equals("md") ||
-                suffix.equals("inc") ||
-                suffix.equals("proto") ||
-                suffix.equals("yml")) {
+        if ("h".equals(suffix) ||
+                "cpp".equals(suffix) ||
+                "hpp".equals(suffix) ||
+                "cc".equals(suffix) ||
+                "jce".equals(suffix) ||
+                "log".equals(suffix) ||
+                "mk".equals(suffix) ||
+                "bzl".equals(suffix) ||
+                "md".equals(suffix) ||
+                "inc".equals(suffix) ||
+                "proto".equals(suffix) ||
+                "yml".equals(suffix)) {
             return true;
         } else {
             String name = fileName.toUpperCase();
-            if (name.contains("WORKSPACE") || name.contains("BUILD")) {
-                return true;
-            }
+            return name.contains("WORKSPACE") || name.contains("BUILD");
         }
-        return false;
     }
 
     private boolean isCopyPath(String path) {
@@ -138,17 +132,14 @@ public class FileSynchronizeWorker {
 
     private boolean isIgnore(File file) {
         String name = file.getName();
-        if (name.startsWith(".") ||
+        return name.startsWith(".") ||
                 name.endsWith(".runfiles") ||
-                name.equals("_objs") ||
-                name.equals("bazel-out")) {
-            return true;
-        }
-        return false;
+                "_objs".equals(name) ||
+                "bazel-out".equals(name);
     }
 
     private void scanAndCopyFiles(File source, File destination,
-            ProgressIndicator progressIndicator) {
+                                  ProgressIndicator progressIndicator) {
         try {
             progressIndicator.checkCanceled();
         } catch (ProcessCanceledException e) {
@@ -293,6 +284,8 @@ public class FileSynchronizeWorker {
     }
 
     private void trySyncTafjceDependenceDirectory(ProgressIndicator progressIndicator) {
+        Project project = projectWrapper.getProject();
+        String target = projectWrapper.getTarget();
         try {
             List<String> paths = WebServersParser.parse(project.getBasePath());
             for (String path : paths) {
@@ -332,6 +325,7 @@ public class FileSynchronizeWorker {
     }
 
     private boolean isBazelProjectDirectory(File file) {
+        Project project = projectWrapper.getProject();
         String targetName = "bazel-" + bazelWorkspace.getTarget();
         targetName = targetName.toLowerCase();
         if (file.getName().toLowerCase().equals(targetName)) {
@@ -355,13 +349,14 @@ public class FileSynchronizeWorker {
 
     /**
      * Get remote bazel synchronized directory. directory as followed:
-     *
+     * <p>
      * ${project}/bazel-bin
      * ${project}/bazel-PROJECT/external
      *
      * @return
      */
     public List<File> getRemoteBazelSyncDirectory() {
+        Project project = projectWrapper.getProject();
         List<File> targetFiles = new LinkedList<>();
         List<String> syncPaths = WebServersParser.parse(project.getBasePath());
         for (String syncPath : syncPaths) {
@@ -436,6 +431,8 @@ public class FileSynchronizeWorker {
     }
 
     public boolean perform(ProgressIndicator progressIndicator) {
+        String app = projectWrapper.getApp();
+        String target = projectWrapper.getTarget();
         long startMs = System.currentTimeMillis();
         if (jsonConfig == null) {
             return false;

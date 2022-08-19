@@ -1,6 +1,6 @@
 package com.github.allsochen.m2cmake.makefile;
 
-import com.github.allsochen.m2cmake.utils.Constants;
+import com.github.allsochen.m2cmake.constants.Constants;
 
 import java.io.File;
 import java.util.*;

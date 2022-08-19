@@ -1,10 +1,11 @@
 package com.github.allsochen.m2cmake.action;
 
 import com.github.allsochen.m2cmake.configuration.JsonConfig;
-import com.github.allsochen.m2cmake.dependence.FileSynchronizeWorker;
+import com.github.allsochen.m2cmake.dependence.SambaFileSynchronizeWorker;
 import com.github.allsochen.m2cmake.makefile.TafMakefileAnalyser;
 import com.github.allsochen.m2cmake.makefile.TafMakefileProperty;
 import com.github.allsochen.m2cmake.utils.ProjectUtil;
+import com.github.allsochen.m2cmake.utils.ProjectWrapper;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -25,6 +26,7 @@ public class TafDependenceSynchronizeAction extends AnAction {
 
         String app = ProjectUtil.chooseApp(tafMakefileProperty.getApp());
         String target = ProjectUtil.chooseTarget(project.getName(), tafMakefileProperty.getTargets(), null);
+        ProjectWrapper projectWrapper = new ProjectWrapper(app, target, project);
 
         JsonConfig jsonConfig = ProjectUtil.getJsonConfig(project);
         if (jsonConfig == null) {
@@ -32,8 +34,8 @@ public class TafDependenceSynchronizeAction extends AnAction {
         }
 
         // Synchronized source dependence to destination.
-        FileSynchronizeWorker fsw = new FileSynchronizeWorker(jsonConfig, tafMakefileProperty, null,
-                app, target, project);
+        SambaFileSynchronizeWorker fsw = new SambaFileSynchronizeWorker(jsonConfig, tafMakefileProperty, null,
+                projectWrapper);
 
         ProgressManager.getInstance().run(new Task.Backgroundable(project,
                 "TAF dependence recurse synchronize...") {
