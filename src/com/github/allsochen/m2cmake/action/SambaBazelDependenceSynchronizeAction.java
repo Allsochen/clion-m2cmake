@@ -14,7 +14,7 @@ import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
-public class BazelDependenceSynchronizeAction extends AnAction {
+public class SambaBazelDependenceSynchronizeAction extends AnAction {
 
     @Override
     public void actionPerformed(AnActionEvent event) {

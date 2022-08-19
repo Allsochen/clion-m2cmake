@@ -3,6 +3,7 @@ package com.github.allsochen.m2cmake.generator;
 import com.github.allsochen.m2cmake.configuration.JsonConfig;
 import com.github.allsochen.m2cmake.dependence.SambaFileSynchronizeWorker;
 import com.github.allsochen.m2cmake.makefile.BazelWorkspace;
+import com.github.allsochen.m2cmake.utils.FilterUtil;
 import com.github.allsochen.m2cmake.utils.ProjectUtil;
 import com.github.allsochen.m2cmake.utils.ProjectWrapper;
 import com.github.allsochen.m2cmake.view.ConsoleWindow;
@@ -43,7 +44,7 @@ public class BazelToCmakeFileGenerator extends AbstractCmakeFileGenerator {
      * @param path
      * @return
      */
-    private static String ConvertPathSeparator(String path) {
+    private static String convertPathSeparator(String path) {
         return path.replaceAll("\\\\", "/");
     }
 
@@ -76,7 +77,7 @@ public class BazelToCmakeFileGenerator extends AbstractCmakeFileGenerator {
 
         Set<String> configIncludes = new LinkedHashSet<>(this.jsonConfig.getIncludes());
         for (String include : configIncludes) {
-            bw.write("include_directories(" + ConvertPathSeparator(include) + ")");
+            bw.write("include_directories(" + convertPathSeparator(include) + ")");
             bw.newLine();
         }
     }
@@ -104,7 +105,7 @@ public class BazelToCmakeFileGenerator extends AbstractCmakeFileGenerator {
         List<File> subDirectories = new ArrayList<>();
         walkToFilterIncludeOrSrcDir(root, false, subDirectories);
         for (File subDirectory : subDirectories) {
-            includes.add(ConvertPathSeparator(subDirectory.getAbsolutePath()));
+            includes.add(convertPathSeparator(subDirectory.getAbsolutePath()));
         }
         for (String include : includes) {
             bw.write("include_directories(" + include + ")");
@@ -117,7 +118,7 @@ public class BazelToCmakeFileGenerator extends AbstractCmakeFileGenerator {
         bw.write("# Bazel bin includes");
         bw.newLine();
         String bazelBinFilesPath = ProjectUtil.getLocalBazelBinFilesPath(jsonConfig);
-        bw.write("include_directories(" + ConvertPathSeparator(bazelBinFilesPath) + ")");
+        bw.write("include_directories(" + convertPathSeparator(bazelBinFilesPath) + ")");
     }
 
     public void writeLocalBazelRepositoryBasePath(BufferedWriter bw) throws IOException {
@@ -125,7 +126,7 @@ public class BazelToCmakeFileGenerator extends AbstractCmakeFileGenerator {
         bw.write("# Bazel repository includes");
         bw.newLine();
         String localBazelRepositoryDir = ProjectUtil.getLocalBazelRepositoryFilesPath(jsonConfig);
-        bw.write("include_directories(" + ConvertPathSeparator(localBazelRepositoryDir) + ")");
+        bw.write("include_directories(" + convertPathSeparator(localBazelRepositoryDir) + ")");
 
     }
 
@@ -133,7 +134,7 @@ public class BazelToCmakeFileGenerator extends AbstractCmakeFileGenerator {
         // Add itself dependence gen files.
         bw.newLine();
         File itself = ProjectUtil.getLocalBazelBinExternalWorkspaceFile(jsonConfig, bazelWorkspace.getTarget());
-        bw.write("include_directories(" + ConvertPathSeparator(itself.getAbsolutePath()) + ")");
+        bw.write("include_directories(" + convertPathSeparator(itself.getAbsolutePath()) + ")");
         bw.newLine();
     }
 
@@ -170,6 +171,7 @@ public class BazelToCmakeFileGenerator extends AbstractCmakeFileGenerator {
         bw.newLine();
     }
 
+    @Override
     public void create() {
         Project project = projectWrapper.getProject();
         try {
@@ -213,13 +215,13 @@ public class BazelToCmakeFileGenerator extends AbstractCmakeFileGenerator {
                 consoleWindow.println("externalPath: " + file.getAbsolutePath(),
                         ConsoleViewContentType.NORMAL_OUTPUT);
                 if (file.isDirectory() && bazelWorkspaceDependenceNames.contains(file.getName())) {
-                    includes.add(ConvertPathSeparator(file.getAbsolutePath()));
+                    includes.add(convertPathSeparator(file.getAbsolutePath()));
                 }
                 // Walk through the sub directory. try to add include/src directory.
                 List<File> subDirectories = new ArrayList<>();
                 walkToFilterIncludeOrSrcDir(file, true, subDirectories);
                 for (File subDirectory : subDirectories) {
-                    includes.add(ConvertPathSeparator(subDirectory.getAbsolutePath()));
+                    includes.add(convertPathSeparator(subDirectory.getAbsolutePath()));
                 }
             }
             // 2.Add remote dependence path.
@@ -228,7 +230,7 @@ public class BazelToCmakeFileGenerator extends AbstractCmakeFileGenerator {
                     // bazel-bin|repository/name
                     String dependence = localBazelBinOrRepositoryFilesExternal.getAbsolutePath() +
                             File.separator + file.getName();
-                    includes.add(ConvertPathSeparator(dependence));
+                    includes.add(convertPathSeparator(dependence));
                 }
             }
             for (String include : includes) {
@@ -253,7 +255,7 @@ public class BazelToCmakeFileGenerator extends AbstractCmakeFileGenerator {
 
     private static void walkToFilterIncludeOrSrcDir(File file, boolean exclude, List<File> includeOrSrcDir) {
         if (file != null && file.isDirectory()) {
-            if (isIncludeOrSrc(file, exclude)) {
+            if (FilterUtil.isIncludeOrSrc(file, exclude)) {
                 includeOrSrcDir.add(file);
             } else {
                 // Walk the sub directory while it is not an include/src directory.
@@ -295,37 +297,6 @@ public class BazelToCmakeFileGenerator extends AbstractCmakeFileGenerator {
             }
         }
         return children;
-    }
-
-    private static boolean excludeIncludeOrSrc(File file) {
-        // exclude the directory.
-        List<String> excludes = new ArrayList<>();
-        excludes.add("test");
-        excludes.add("third_party");
-        excludes.add("third-party");
-        excludes.add("3rd");
-        excludes.add("local");
-        excludes.add("java");
-        excludes.add("go");
-        excludes.add("php");
-        excludes.add("ruby");
-        excludes.add("python");
-        excludes.add("csharp");
-
-        for (String exclude : excludes) {
-            if (file.getAbsolutePath().contains(File.separator + exclude + File.separator)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean isIncludeOrSrc(File file, boolean exclude) {
-        if (exclude && excludeIncludeOrSrc(file)) {
-            return false;
-        }
-        String fileName = file.getName();
-        return "include".equals(fileName) || "src".equals(fileName);
     }
 
 }

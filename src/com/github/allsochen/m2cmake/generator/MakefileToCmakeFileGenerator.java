@@ -47,6 +47,7 @@ public class MakefileToCmakeFileGenerator extends AbstractCmakeFileGenerator {
         return new File(basePath + File.separator + "CMakeLists.txt");
     }
 
+    @Override
     public void create() {
         Project project = projectWrapper.getProject();
         String app = projectWrapper.getApp();

@@ -19,7 +19,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class BazelCmakeFileGenerateAction extends AnAction {
+public class SambaBazelCmakeFileGenerateAction extends AnAction {
 
     ExecutorService executorService = Executors.newSingleThreadExecutor();
 

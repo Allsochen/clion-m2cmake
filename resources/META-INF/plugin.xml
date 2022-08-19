@@ -37,12 +37,12 @@
                 <keyboard-shortcut first-keystroke="alt K" second-keystroke="alt G" keymap="$default"/>
             </action>
             <action id="m2cmake.BazelDependenceSynchronizeAction"
-                    class="com.github.allsochen.m2cmake.action.BazelDependenceSynchronizeAction"
+                    class="com.github.allsochen.m2cmake.action.SambaBazelDependenceSynchronizeAction"
                     text="Bazel Dependence Synchronize...">
                 <keyboard-shortcut first-keystroke="alt K" second-keystroke="alt A" keymap="$default"/>
             </action>
             <action id="m2cmake.BazelCmakeFileGenerateAction"
-                    class="com.github.allsochen.m2cmake.action.BazelCmakeFileGenerateAction"
+                    class="com.github.allsochen.m2cmake.action.SambaBazelCmakeFileGenerateAction"
                     text="Transfer Bazel To CMakeList...">
                 <keyboard-shortcut first-keystroke="alt K" second-keystroke="alt B" keymap="$default"/>
             </action>
