@@ -5,25 +5,22 @@ import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class JsonConfigBuilder {
 
-    private Gson gson = new GsonBuilder()
+    private final Gson gson = new GsonBuilder()
             .setPrettyPrinting()
             .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
             .create();
 
-    private static JsonConfigBuilder instance = new JsonConfigBuilder();
+    private static final JsonConfigBuilder INSTANCE = new JsonConfigBuilder();
 
     private JsonConfigBuilder() {
     }
 
     public static JsonConfigBuilder getInstance() {
-        return instance;
+        return INSTANCE;
     }
 
     public String create() {
@@ -52,32 +49,81 @@ public class JsonConfigBuilder {
     }
 
     public static List<String> defaultNoForceSyncModules() {
-        List<String> noForceSyncModules = new ArrayList<>();
-        noForceSyncModules.add("com_github_gflags_gflags");
-        noForceSyncModules.add("com_github_tencent_rapidjson");
-        noForceSyncModules.add("com_github_jbeder_yaml_cpp");
-        noForceSyncModules.add("com_google_protobuf");
-        noForceSyncModules.add("bazel_tools");
-        noForceSyncModules.add("zlib");
-        noForceSyncModules.add("taf");
-        noForceSyncModules.add("trpc_cpp");
-        noForceSyncModules.add("dcache_trpc");
-        noForceSyncModules.add("opentracing_extended");
-        noForceSyncModules.add("googlemock");
-        noForceSyncModules.add("googletest");
-        noForceSyncModules.add("local_curl");
-        noForceSyncModules.add("protobuf_archive");
-        noForceSyncModules.add("rainbow_sdk");
-        noForceSyncModules.add("tconf_api");
-        noForceSyncModules.add("TegMonitorApi");
-        noForceSyncModules.add("tjg_report_api");
-        noForceSyncModules.add("tjgtracer");
-        noForceSyncModules.add("polaris_api");
-        noForceSyncModules.add("PcgMonitorApi");
-        noForceSyncModules.add("spdlog");
-        noForceSyncModules.add("fmtlib");
-        noForceSyncModules.add("segv_api");
-        return noForceSyncModules;
+        String[] noForceSyncModules = new String[]{
+                "atta_api",
+                "atta_log",
+                "attaapi",
+                "AttaLogReport",
+                "AutoParameterOptimizerCppSdk",
+                "bazel_tools",
+                "boringssl",
+                "cmod",
+                "com_github_boostorg_preprocessor",
+                "com_github_brpc_brpc",
+                "com_github_cameron314_concurrentqueue",
+                "com_github_gflags_gflags",
+                "com_github_google_flatbuffers",
+                "com_github_jbeder_yaml_cpp",
+                "com_github_opentelemetry_proto",
+                "com_github_robinhood_hash",
+                "com_github_tencent_rapidjson",
+                "com_github_toml11",
+                "com_github_toml11",
+                "com_gitlab_libeigen_eigen",
+                "com_google_absl",
+                "com_google_protobuf",
+                "com_googlesource_code_re2",
+                "concurrentqueue",
+                "curl",
+                "dcache_trpc",
+                "didagle",
+                "fbs_tool",
+                "fmtlib",
+                "forward_index_proto",
+                "googlemock",
+                "googletest",
+                "ispine",
+                "jce_tool",
+                "jsoncpp",
+                "kcfg",
+                "LatestHistory",
+                "local_config_cc",
+                "local_curl",
+                "LockFreeHashMap",
+                "one_piece_proto",
+                "opentelemetry_cpp",
+                "opentracing_extended",
+                "PcgMonitorApi",
+                "picohttpparser",
+                "platforms",
+                "polaris_api",
+                "polaris_api",
+                "protobuf_archive",
+                "rainbow_sdk",
+                "segv_api",
+                "snappy",
+                "spdlog",
+                "ssexpr",
+                "taf",
+                "taf_common",
+                "TafCommon",
+                "tconf_api",
+                "tconv",
+                "TegLogApi",
+                "TegMonitorApi",
+                "tensorflow",
+                "third_party",
+                "tjg_report_api",
+                "tjgtracer",
+                "tps_sdk_cpp",
+                "trpc-pb",
+                "trpc_cpp",
+                "trpc_metis",
+                "trs-interface",
+                "trs_reranking",
+                "zlib",
+        };
+        return Arrays.asList(noForceSyncModules);
     }
 
     public JsonConfig deserialize(String json) {
