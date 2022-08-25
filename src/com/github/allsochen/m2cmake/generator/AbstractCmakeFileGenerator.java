@@ -5,7 +5,9 @@ import com.github.allsochen.m2cmake.utils.ProjectWrapper;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.vfs.LocalFileSystem;
+import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 
 import java.io.File;
@@ -49,6 +51,8 @@ public abstract class AbstractCmakeFileGenerator {
             // Set project to auto build.
             try {
                 LocalFileSystem.getInstance().refresh(true);
+                VfsUtil.markDirtyAndRefresh(true, true, true,
+                        ProjectRootManager.getInstance(projectWrapper.getProject()).getContentRoots());
                 AutomaticReloadCMakeBuilder.build(projectWrapper.getProject().getBasePath());
             } catch (Exception e) {
                 e.printStackTrace();
