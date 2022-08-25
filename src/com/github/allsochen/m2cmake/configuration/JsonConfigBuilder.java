@@ -28,7 +28,8 @@ public class JsonConfigBuilder {
         JsonConfig jsonConfig = new JsonConfig();
         jsonConfig.setCmakeVersion("3.1");
 
-        String username = System.getenv().get("USERNAME");
+        Map<String, String> env = System.getenv();
+        String username = env.getOrDefault("USERNAME", env.getOrDefault("USER", "yourname"));
         String localDir = "D:/Codes/tafjce";
         if (!OsInfo.isWindows()) {
             localDir = "/Users/" + username + "/Codes/tafjce";
@@ -41,6 +42,9 @@ public class JsonConfigBuilder {
         if (OsInfo.isWindows()) {
             includes.add("D:/Codes/C++/taf/include");
             includes.add("D:/Codes/C++/taf/src");
+        } else {
+            includes.add("Users/" + username + "/Codes/C++/taf/include");
+            includes.add("Users/" + username + "/Codes/C++/taf/src");
         }
         jsonConfig.setIncludes(includes);
         jsonConfig.setAutomaticReloadCMake(true);
