@@ -1,6 +1,7 @@
 package com.github.allsochen.m2cmake.configuration;
 
 import com.github.allsochen.m2cmake.constants.Constants;
+import com.github.allsochen.m2cmake.utils.OsInfo;
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -26,23 +27,34 @@ public class JsonConfigBuilder {
     public String create() {
         JsonConfig jsonConfig = new JsonConfig();
         jsonConfig.setCmakeVersion("3.1");
-        Map<String, String> mappings = new HashMap<>();
 
-        mappings.put(Constants.HOME_TAFJCE + "/", "D:/Codes/tafjce/");
+        String username = System.getenv().get("USERNAME");
+        String localDir = "D:/Codes/tafjce";
+        if (!OsInfo.isWindows()) {
+            localDir = "/Users/" + username + "/Codes/tafjce";
+        }
+        Map<String, String> mappings = new HashMap<>();
+        mappings.put(Constants.HOME_TAFJCE + "/", localDir);
         jsonConfig.setDirMappings(mappings);
 
         List<String> includes = new ArrayList<>();
-        includes.add("D:/Codes/C++/taf/include");
-        includes.add("D:/Codes/C++/taf/src");
+        if (OsInfo.isWindows()) {
+            includes.add("D:/Codes/C++/taf/include");
+            includes.add("D:/Codes/C++/taf/src");
+        }
         jsonConfig.setIncludes(includes);
         jsonConfig.setAutomaticReloadCMake(true);
 
-        List<String> tafjceSourceDirs = new ArrayList<>();
-        tafjceSourceDirs.add("Z:/tafjce");
-        tafjceSourceDirs.add("Y:/tafjce");
-        jsonConfig.setTafjceRemoteDirs(tafjceSourceDirs);
+        List<String> remoteDirs = new ArrayList<>();
+        if (OsInfo.isWindows()) {
+            remoteDirs.add("Z:/tafjce");
+        } else {
+            remoteDirs.add("/Volumes/dev/tafjce");
+            remoteDirs.add("/Volumes/dev/" + username + "/proejcts/MTT");
+        }
+        jsonConfig.setTafjceRemoteDirs(remoteDirs);
 
-        jsonConfig.setTafjceLocalDir("D:/Codes/tafjce");
+        jsonConfig.setTafjceLocalDir(localDir);
 
         jsonConfig.setNoForceSyncModules(defaultNoForceSyncModules());
         return gson.toJson(jsonConfig);

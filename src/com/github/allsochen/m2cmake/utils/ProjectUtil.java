@@ -116,4 +116,10 @@ public class ProjectUtil {
                 File.separator + "external" +
                 File.separator + workspaceName);
     }
+
+    public static boolean isBazelProjectDirectory(String directoryName, String projectName) {
+        String targetName = "bazel-" + projectName;
+        targetName = targetName.toLowerCase();
+        return directoryName.toLowerCase().equals(targetName);
+    }
 }
