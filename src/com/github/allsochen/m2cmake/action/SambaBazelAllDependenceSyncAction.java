@@ -14,7 +14,7 @@ import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
-public class SambaBazelDependenceSynchronizeAction extends AnAction {
+public class SambaBazelAllDependenceSyncAction extends AnAction {
 
     @Override
     public void actionPerformed(AnActionEvent event) {
@@ -43,7 +43,7 @@ public class SambaBazelDependenceSynchronizeAction extends AnAction {
             @Override
             public void run(@NotNull ProgressIndicator progressIndicator) {
                 progressIndicator.setFraction(0);
-                fsw.perform(progressIndicator);
+                fsw.perform(progressIndicator, true, true);
                 progressIndicator.setFraction(1.0);
             }
         });

@@ -280,7 +280,8 @@ public class BazelToCmakeFileGenerator extends AbstractCmakeFileGenerator {
      */
     private List<File> getRemoteSyncSubDirectory() {
         List<File> children = new ArrayList<>();
-        for (File file : fsw.getRemoteBazelSyncDirectory()) {
+        List<File> syncDirs = fsw.getRemoteBazelSyncDir(true, true);
+        for (File file : syncDirs) {
             if (file.isDirectory()) {
                 // Add current directory
                 children.add(file);
@@ -290,7 +291,7 @@ public class BazelToCmakeFileGenerator extends AbstractCmakeFileGenerator {
                 }
                 for (File subFile : listFiles) {
                     if (file.isDirectory()) {
-                        // Add sub directory.
+                        // Add sub-directory.
                         children.add(subFile);
                     }
                 }

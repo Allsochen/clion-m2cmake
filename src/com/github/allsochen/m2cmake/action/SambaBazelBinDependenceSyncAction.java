@@ -2,7 +2,6 @@ package com.github.allsochen.m2cmake.action;
 
 import com.github.allsochen.m2cmake.configuration.JsonConfig;
 import com.github.allsochen.m2cmake.dependence.SambaFileSynchronizeWorker;
-import com.github.allsochen.m2cmake.dependence.SftpFileSynchronizeWorker;
 import com.github.allsochen.m2cmake.makefile.BazelWorkspace;
 import com.github.allsochen.m2cmake.makefile.BazelWorkspaceAnalyser;
 import com.github.allsochen.m2cmake.utils.ProjectUtil;
@@ -15,7 +14,7 @@ import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
-public class SftpBazelDependenceSynchronizeAction extends AnAction {
+public class SambaBazelBinDependenceSyncAction extends AnAction {
 
     @Override
     public void actionPerformed(AnActionEvent event) {
@@ -35,7 +34,8 @@ public class SftpBazelDependenceSynchronizeAction extends AnAction {
         }
 
         // Synchronized source dependence to destination.
-        SftpFileSynchronizeWorker fsw = new SftpFileSynchronizeWorker(jsonConfig, bazelWorkspace, projectWrapper);
+        SambaFileSynchronizeWorker fsw = new SambaFileSynchronizeWorker(jsonConfig, null, bazelWorkspace,
+                projectWrapper);
 
         ProgressManager.getInstance().run(new Task.Backgroundable(project,
                 "Bazel dependence synchronize...") {
@@ -43,7 +43,7 @@ public class SftpBazelDependenceSynchronizeAction extends AnAction {
             @Override
             public void run(@NotNull ProgressIndicator progressIndicator) {
                 progressIndicator.setFraction(0);
-                fsw.perform(progressIndicator);
+                fsw.perform(progressIndicator, true, false);
                 progressIndicator.setFraction(1.0);
             }
         });

@@ -139,7 +139,9 @@ public class SambaFileSynchronizeWorker {
     }
 
     private void scanAndCopyFiles(File source, File destination,
-                                  ProgressIndicator progressIndicator) {
+                                  ProgressIndicator progressIndicator,
+                                  boolean containsBazelBinDir,
+                                  boolean containsBazelRepositoryDir) {
         try {
             progressIndicator.checkCanceled();
         } catch (ProcessCanceledException e) {
@@ -170,6 +172,7 @@ public class SambaFileSynchronizeWorker {
 
         if (source.isDirectory()) {
             // no force synchronize with base dependence.
+            // no force will be disabled in bazel-bin dir sync.
             if (bazelWorkspace != null &&
                     jsonConfig.getNoForceSyncModules().contains(source.getName()) &&
                     destination.exists()) {
@@ -202,7 +205,8 @@ public class SambaFileSynchronizeWorker {
                 File destFile = new File(destination, fileName);
                 if ((isCopyFileFamily(fileName) && hasDiff(srcFile, destFile)) || srcFile.isDirectory()) {
                     operator = "SCAN";
-                    scanAndCopyFiles(srcFile, destFile, progressIndicator);
+                    scanAndCopyFiles(srcFile, destFile, progressIndicator, containsBazelBinDir,
+                            containsBazelRepositoryDir);
                 } else {
                     if ((isCopyFileFamily(fileName) && !hasDiff(srcFile, destFile))) {
                         operator = "UNMODIFIED";
@@ -303,7 +307,7 @@ public class SambaFileSynchronizeWorker {
                                     destDir.getAbsolutePath(),
                             ConsoleViewContentType.NORMAL_OUTPUT);
                     CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
-                        scanAndCopyFiles(sourceDir, destDir, progressIndicator);
+                        scanAndCopyFiles(sourceDir, destDir, progressIndicator, true, true);
                         return true;
                     }, executor);
                     scanFutures.add(future);
@@ -355,7 +359,7 @@ public class SambaFileSynchronizeWorker {
      *
      * @return
      */
-    public List<File> getRemoteBazelSyncDirectory() {
+    public List<File> getRemoteBazelSyncDir(boolean containsBazelBinDir, boolean containsBazelRepositoryDir) {
         Project project = projectWrapper.getProject();
         List<File> targetFiles = new LinkedList<>();
         List<String> syncPaths = WebServersParser.parse(project.getBasePath());
@@ -376,9 +380,9 @@ public class SambaFileSynchronizeWorker {
             for (File file : files) {
                 String fileName = file.getName();
                 File[] subFiles = file.listFiles();
-                if (fileName.equals(Constants.BAZEL_BIN)) {
+                if (fileName.equals(Constants.BAZEL_BIN) && containsBazelBinDir) {
                     targetFiles.add(file);
-                } else {
+                } else if (containsBazelRepositoryDir) {
                     // Add bazel-workspaceName/external directory.
                     if (isBazelProjectDirectory(file) && subFiles != null) {
                         for (File subFile : subFiles) {
@@ -403,9 +407,11 @@ public class SambaFileSynchronizeWorker {
         return targetFiles;
     }
 
-    private void trySyncBazelDependenceDirectory(ProgressIndicator progressIndicator) {
+    private void trySyncBazelDependenceDir(ProgressIndicator progressIndicator,
+                                           boolean containsBazelBinDir,
+                                           boolean containsBazelRepositoryDir) {
         try {
-            List<File> targetFiles = getRemoteBazelSyncDirectory();
+            List<File> targetFiles = getRemoteBazelSyncDir(containsBazelBinDir, containsBazelRepositoryDir);
             for (int i = 0; i < targetFiles.size(); i++) {
                 File sourceDir = targetFiles.get(i);
                 int index = i + 1;
@@ -420,7 +426,8 @@ public class SambaFileSynchronizeWorker {
                                 " dest directory: " + destDir.getAbsolutePath(),
                         ConsoleViewContentType.NORMAL_OUTPUT);
                 CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
-                    scanAndCopyFiles(sourceDir, destDir, progressIndicator);
+                    scanAndCopyFiles(sourceDir, destDir, progressIndicator, containsBazelBinDir,
+                            containsBazelRepositoryDir);
                     return true;
                 }, executor);
                 scanFutures.add(future);
@@ -430,7 +437,9 @@ public class SambaFileSynchronizeWorker {
         }
     }
 
-    public boolean perform(ProgressIndicator progressIndicator) {
+    public boolean perform(ProgressIndicator progressIndicator,
+                           boolean containsBazelBinDir,
+                           boolean containsBazelRepositoryDir) {
         String app = projectWrapper.getApp();
         String target = projectWrapper.getTarget();
         long startMs = System.currentTimeMillis();
@@ -442,78 +451,9 @@ public class SambaFileSynchronizeWorker {
         }
 
         if (bazelWorkspace != null && bazelWorkspace.isValid()) {
-            if (progressIndicator != null) {
-                String message = "Start synchronize bazel dependence files...";
-                progressIndicator.setText2(message);
-                consoleWindow.println(message, ConsoleViewContentType.NORMAL_OUTPUT);
-                consoleWindow.println("dependence modules: " + bazelWorkspace.getDependenceName().toString(),
-                        ConsoleViewContentType.NORMAL_OUTPUT);
-                consoleWindow.println("no force sync modules: " + jsonConfig.getNoForceSyncModules(),
-                        ConsoleViewContentType.ERROR_OUTPUT);
-            }
-            trySyncBazelDependenceDirectory(progressIndicator);
+            syncBazel(progressIndicator, containsBazelBinDir, containsBazelRepositoryDir);
         } else {
-            if (tafMakefileProperty != null) {
-                List<String> jceIncludeFilePaths = tafMakefileProperty.getJceDependenceRecurseIncludes(
-                        jsonConfig.getTafjceRemoteDirs(), false);
-                // Add itself
-                jceIncludeFilePaths.add(Constants.HOME_TAFJCE + "/" + app + "/" + target);
-                jceIncludeFilePaths = CollectionUtil.uniq(jceIncludeFilePaths);
-                Collections.sort(jceIncludeFilePaths);
-
-                if (progressIndicator != null) {
-                    String message = "Start synchronize dependence files...";
-                    progressIndicator.setText2(message);
-                    consoleWindow.println(message, ConsoleViewContentType.NORMAL_OUTPUT);
-                }
-
-                int length = jceIncludeFilePaths.size();
-                Set<String> copiedDirs = new HashSet<>();
-                for (int i = 0; i < jceIncludeFilePaths.size(); i++) {
-                    String includeFilePath = jceIncludeFilePaths.get(i);
-                    // /home/tafjce/MTT/AServer
-                    String includePath = TafMakefileProperty.toIncludePath(includeFilePath);
-                    List<String> tafjceRemoteMappingIncludeDirs = toTafjceRemoteMappingIncludeDir(includePath);
-                    String tafjceLocalMappingIncludeDir = toTafjceLocalMappingIncludeDir(includePath);
-                    if (tafjceLocalMappingIncludeDir.isEmpty()) {
-                        continue;
-                    }
-                    File destDir = new File(tafjceLocalMappingIncludeDir);
-                    if (!destDir.exists()) {
-                        if (!destDir.mkdirs()) {
-                            consoleWindow.println("create directory failure: " + destDir.getAbsolutePath(),
-                                    ConsoleViewContentType.ERROR_OUTPUT);
-                        }
-                    }
-                    for (String tafjceRemoteMappingIncludeDir : tafjceRemoteMappingIncludeDirs) {
-                        consoleWindow.println("tafjceRemoteMappingIncludeDir: " +
-                                        tafjceRemoteMappingIncludeDir,
-                                ConsoleViewContentType.ERROR_OUTPUT);
-                        if (!isCopyPath(tafjceRemoteMappingIncludeDir)) {
-                            continue;
-                        }
-                        File sourceDir = new File(tafjceRemoteMappingIncludeDir);
-                        if (!sourceDir.exists()) {
-                            consoleWindow.println("source directory not exist: " + sourceDir.getAbsolutePath(),
-                                    ConsoleViewContentType.ERROR_OUTPUT);
-                            continue;
-                        }
-                        if (!sourceDir.isDirectory()) {
-                            continue;
-                        }
-                        if (!copiedDirs.contains(tafjceLocalMappingIncludeDir) ||
-                                (destDir.list() == null || destDir.list().length <= 0)) {
-                            CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
-                                scanAndCopyFiles(sourceDir, destDir, progressIndicator);
-                                return true;
-                            }, executor);
-                            copiedDirs.add(tafjceLocalMappingIncludeDir);
-                            scanFutures.add(future);
-                        }
-                    }
-                }
-                trySyncTafjceDependenceDirectory(progressIndicator);
-            }
+            syncTafJce(progressIndicator, app, target);
         }
 
         CompletableFuture.allOf(scanFutures.toArray(new CompletableFuture[0])).join();
@@ -526,5 +466,87 @@ public class SambaFileSynchronizeWorker {
                 ConsoleViewContentType.ERROR_OUTPUT);
         executor.shutdown();
         return true;
+    }
+
+    private void syncTafJce(ProgressIndicator progressIndicator, String app, String target) {
+        if (tafMakefileProperty != null) {
+            List<String> jceIncludeFilePaths = tafMakefileProperty.getJceDependenceRecurseIncludes(
+                    jsonConfig.getTafjceRemoteDirs(), false);
+            // Add itself
+            jceIncludeFilePaths.add(Constants.HOME_TAFJCE + "/" + app + "/" + target);
+            jceIncludeFilePaths = CollectionUtil.uniq(jceIncludeFilePaths);
+            Collections.sort(jceIncludeFilePaths);
+
+            if (progressIndicator != null) {
+                String message = "Start synchronize dependence files...";
+                progressIndicator.setText2(message);
+                consoleWindow.println(message, ConsoleViewContentType.NORMAL_OUTPUT);
+            }
+
+            int length = jceIncludeFilePaths.size();
+            Set<String> copiedDirs = new HashSet<>();
+            for (int i = 0; i < jceIncludeFilePaths.size(); i++) {
+                String includeFilePath = jceIncludeFilePaths.get(i);
+                // /home/tafjce/MTT/AServer
+                String includePath = TafMakefileProperty.toIncludePath(includeFilePath);
+                List<String> tafjceRemoteMappingIncludeDirs = toTafjceRemoteMappingIncludeDir(includePath);
+                String tafjceLocalMappingIncludeDir = toTafjceLocalMappingIncludeDir(includePath);
+                if (tafjceLocalMappingIncludeDir.isEmpty()) {
+                    continue;
+                }
+                File destDir = new File(tafjceLocalMappingIncludeDir);
+                if (!destDir.exists()) {
+                    if (!destDir.mkdirs()) {
+                        consoleWindow.println("create directory failure: " + destDir.getAbsolutePath(),
+                                ConsoleViewContentType.ERROR_OUTPUT);
+                    }
+                }
+                for (String tafjceRemoteMappingIncludeDir : tafjceRemoteMappingIncludeDirs) {
+                    consoleWindow.println("tafjceRemoteMappingIncludeDir: " +
+                                    tafjceRemoteMappingIncludeDir,
+                            ConsoleViewContentType.ERROR_OUTPUT);
+                    if (!isCopyPath(tafjceRemoteMappingIncludeDir)) {
+                        continue;
+                    }
+                    File sourceDir = new File(tafjceRemoteMappingIncludeDir);
+                    if (!sourceDir.exists()) {
+                        consoleWindow.println("source directory not exist: " + sourceDir.getAbsolutePath(),
+                                ConsoleViewContentType.ERROR_OUTPUT);
+                        continue;
+                    }
+                    if (!sourceDir.isDirectory()) {
+                        continue;
+                    }
+                    if (!copiedDirs.contains(tafjceLocalMappingIncludeDir) ||
+                            (destDir.list() == null || destDir.list().length <= 0)) {
+                        CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
+                            scanAndCopyFiles(sourceDir, destDir, progressIndicator, true, true);
+                            return true;
+                        }, executor);
+                        copiedDirs.add(tafjceLocalMappingIncludeDir);
+                        scanFutures.add(future);
+                    }
+                }
+            }
+            trySyncTafjceDependenceDirectory(progressIndicator);
+        }
+    }
+
+    private void syncBazel(ProgressIndicator progressIndicator,
+                           boolean containsBazelBinDir,
+                           boolean containsBazelRepositoryDir) {
+        if (progressIndicator != null) {
+            String message = "Start synchronize bazel dependence files...";
+            progressIndicator.setText2(message);
+            consoleWindow.println(message, ConsoleViewContentType.NORMAL_OUTPUT);
+            consoleWindow.println("dependence modules: " + bazelWorkspace.getDependenceName().toString(),
+                    ConsoleViewContentType.NORMAL_OUTPUT);
+            consoleWindow.println("containsBazelBinDir: " + containsBazelBinDir
+                            + ", containsBazelRepositoryDir: " + containsBazelRepositoryDir,
+                    ConsoleViewContentType.NORMAL_OUTPUT);
+            consoleWindow.println("no force sync modules: " + jsonConfig.getNoForceSyncModules(),
+                    ConsoleViewContentType.ERROR_OUTPUT);
+        }
+        trySyncBazelDependenceDir(progressIndicator, containsBazelBinDir, containsBazelRepositoryDir);
     }
 }
